@@ -1,0 +1,20 @@
+{
+  "name": "obsidian-local-meeting-notes",
+  "version": "0.1.0",
+  "description": "Obsidian plugin: record meetings (mic + system audio) and transcribe them 100% locally with whisper.cpp.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": ["obsidian", "plugin", "transcription", "whisper", "meetings"],
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.20.0",
+    "obsidian": "latest",
+    "typescript": "^5.4.0"
+  }
+}
