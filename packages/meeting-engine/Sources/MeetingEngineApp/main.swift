@@ -4,6 +4,7 @@
 // System / Mic level meters so you can confirm both sources are picking up audio.
 
 import AppKit
+import AVFoundation
 import MeetingEngineCore
 
 private func makeMeter() -> NSLevelIndicator {

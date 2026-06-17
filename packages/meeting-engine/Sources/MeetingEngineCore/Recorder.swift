@@ -21,6 +21,19 @@ private func check(_ status: OSStatus, _ label: String) throws {
 	if status != noErr { throw EngineError(message: "\(label): OSStatus \(status)") }
 }
 
+/// Signals when AVCaptureAudioFileOutput has finished finalizing the mic file.
+final class MicRecordingDelegate: NSObject, AVCaptureFileOutputRecordingDelegate {
+	let done = DispatchSemaphore(value: 0)
+	func fileOutput(
+		_ output: AVCaptureFileOutput,
+		didFinishRecordingTo outputFileURL: URL,
+		from connections: [AVCaptureConnection],
+		error: Error?
+	) {
+		done.signal()
+	}
+}
+
 /// Peak absolute sample amplitude (0…1) across all channels of a float buffer.
 func bufferPeak(_ buffer: AVAudioPCMBuffer) -> Float {
 	guard let channels = buffer.floatChannelData else { return 0 }
@@ -144,43 +157,30 @@ public enum MeetingEngine {
 			log("microphone access not granted - mic track will be empty (grant it in System Settings → Privacy & Security → Microphone)")
 		}
 
-		// 5. Mic via AVAudioEngine. Use the input node's real hardware format, and
-		// create the output file lazily from the FIRST buffer's format so the file
-		// always matches what the tap actually delivers (a mismatch silently fails
-		// every write, yielding an empty mic track).
-		let engine = AVAudioEngine()
-		let micInput = engine.inputNode
-		let micHWFormat = micInput.inputFormat(forBus: 0)
-		var micSink: AVAudioFile?
+		// 5. Mic via AVCaptureSession. Records the input device independently of the
+		// output device - unlike AVAudioEngine, which couples input+output and
+		// delivers no frames when the output is a Bluetooth device. Records to a
+		// temp CAF, converted to the expected .mic.wav on stop.
+		let micSession = AVCaptureSession()
+		let micFileOutput = AVCaptureAudioFileOutput()
+		let micDelegate = MicRecordingDelegate()
+		let micTempCAF = URL(fileURLWithPath: NSTemporaryDirectory() + "me-mic-\(UUID().uuidString).caf")
 		var micActive = false
-		var micWriteErrLogged = false
-		if micHWFormat.sampleRate > 0 && micHWFormat.channelCount > 0 {
-			log(String(format: "mic: %.0f Hz, %u ch", micHWFormat.sampleRate, micHWFormat.channelCount))
-			micInput.installTap(onBus: 0, bufferSize: 4096, format: nil) { buffer, _ in
-				micLevel = bufferPeak(buffer)
-				if micSink == nil {
-					micSink = try? AVAudioFile(
-						forWriting: micURL, settings: buffer.format.settings,
-						commonFormat: buffer.format.commonFormat, interleaved: buffer.format.isInterleaved)
-				}
-				do {
-					try micSink?.write(from: buffer)
-				} catch {
-					if !micWriteErrLogged {
-						micWriteErrLogged = true
-						log("mic write error: \(error.localizedDescription)")
-					}
-				}
-			}
-			engine.prepare()
+		if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized,
+			let micDevice = AVCaptureDevice.default(for: .audio) {
 			do {
-				try engine.start()
+				let input = try AVCaptureDeviceInput(device: micDevice)
+				if micSession.canAddInput(input) { micSession.addInput(input) }
+				if micSession.canAddOutput(micFileOutput) { micSession.addOutput(micFileOutput) }
+				micSession.startRunning()
+				micFileOutput.startRecording(to: micTempCAF, outputFileType: .caf, recordingDelegate: micDelegate)
 				micActive = true
+				log("mic: \(micDevice.localizedName)")
 			} catch {
-				log("mic engine failed to start: \(error.localizedDescription)")
+				log("mic capture failed to start: \(error.localizedDescription)")
 			}
 		} else {
-			log("microphone unavailable (permission not granted, or no input device)")
+			log("microphone unavailable or not authorized - mic track will be empty")
 		}
 
 		// 6. Run. Sample the levels ~20×/sec for the live meters, decoupled from
@@ -189,7 +189,13 @@ public enum MeetingEngine {
 		if let onLevel = onLevel {
 			let t = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "com.servika.meeting-engine.levels"))
 			t.schedule(deadline: .now(), repeating: 0.05)
-			t.setEventHandler { onLevel(systemLevel, micLevel) }
+			t.setEventHandler {
+				if micActive, let ch = micFileOutput.connection(with: .audio)?.audioChannels.first {
+					let db = ch.averagePowerLevel
+					micLevel = db <= -80 ? 0 : Float(pow(10.0, Double(db) / 20.0))
+				}
+				onLevel(systemLevel, micLevel)
+			}
 			t.resume()
 			levelTimer = t
 		}
@@ -203,12 +209,25 @@ public enum MeetingEngine {
 		onLevel?(0, 0)
 		AudioDeviceStop(aggID, ioProcID)
 		if let proc = ioProcID { AudioDeviceDestroyIOProcID(aggID, proc) }
-		if micActive { engine.stop(); micInput.removeTap(onBus: 0) }
+
+		var micFrames: Int64 = 0
+		if micActive {
+			micFileOutput.stopRecording()
+			_ = micDelegate.done.wait(timeout: .now() + 5) // wait for the file to finalize
+			micSession.stopRunning()
+			try? FileManager.default.removeItem(at: micURL)
+			do {
+				try runProcess("/usr/bin/afconvert",
+					["-f", "WAVE", "-d", "LEI16", "-c", "1", micTempCAF.path, micURL.path])
+				if let f = try? AVAudioFile(forReading: micURL) { micFrames = f.length }
+			} catch {
+				log("mic conversion failed: \(error.localizedDescription)")
+			}
+			try? FileManager.default.removeItem(at: micTempCAF)
+		}
 
 		let sysFrames = systemSink?.length ?? 0
-		let micFrames = micSink?.length ?? 0
 		systemSink = nil
-		micSink = nil
 
 		return CaptureResult(systemFrames: sysFrames, micFrames: micFrames,
 			systemURL: systemURL, micURL: micURL)
