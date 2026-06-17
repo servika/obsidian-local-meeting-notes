@@ -7,7 +7,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Planned
-- AI summary & action items from the transcript
 - Near-live (chunked) transcription
 - Speaker diarization
 - Linux / Windows loopback setup guides
@@ -21,6 +20,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Transcript written to a timestamped Markdown note with frontmatter; optional saved audio.
 - Settings tab: device pickers, whisper binary/model paths, language, output folders.
 - Ribbon icon, status-bar recording indicator, and start/stop/toggle commands.
+- Optional AI summary & action items via a local Ollama LLM (opt-in, off by default; configurable URL, model, and prompt). The transcript is preserved even if summarization fails.
 
 [Unreleased]: https://github.com/servika/obsidian-local-meeting-notes/compare/0.1.0...HEAD
 [0.1.0]: https://github.com/servika/obsidian-local-meeting-notes/releases/tag/0.1.0

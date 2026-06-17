@@ -112,6 +112,30 @@ the call on the right. Transcription mixes them down to mono automatically.
 
 ---
 
+## Optional: AI summary & action items
+
+The plugin can run each transcript through a **local** LLM to produce a summary
+and an action-item checklist, prepended above the transcript in the note. This
+is **off by default** and runs entirely on your machine via [Ollama](https://ollama.com).
+
+1. Install Ollama and pull a model:
+   ```bash
+   brew install ollama
+   ollama serve            # leave running (or it starts on login)
+   ollama pull llama3.1    # or any model you like
+   ```
+2. In **Settings → Local Meeting Notes → AI summary**:
+   - Turn on **Generate summary**.
+   - Set **Ollama model** to the model you pulled (e.g. `llama3.1`).
+   - Leave **Ollama URL** at `http://localhost:11434` unless you changed it.
+   - Optionally tweak the **Summary prompt** (`{{transcript}}` is replaced with
+     the transcript text).
+
+Now when you stop a recording, the note will start with `## Summary`,
+`## Key points`, and `## Action items` sections, followed by the full transcript.
+If the summary step fails (e.g. Ollama isn't running), the transcript is still
+saved - you just won't get a summary.
+
 ## Tips
 
 - **Mic-only notes.** Leave **System audio** empty in settings to record just
@@ -143,6 +167,8 @@ the call on the right. Transcription mixes them down to mono automatically.
 
 ## Privacy
 
-Everything runs on your machine. The plugin makes no network requests - audio is
-recorded, resampled, and transcribed locally by the `whisper.cpp` binary and
-model you provide. Nothing is uploaded.
+Everything runs on your machine. By default the plugin makes no network requests
+- audio is recorded, resampled, and transcribed locally by the `whisper.cpp`
+binary and model you provide. The optional AI summary (off by default) sends the
+transcript to a local Ollama instance on `localhost` and nowhere else. Nothing is
+uploaded.

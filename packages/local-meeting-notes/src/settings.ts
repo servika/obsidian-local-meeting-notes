@@ -11,7 +11,25 @@ export interface MeetingNotesSettings {
 	transcriptsFolder: string;
 	recordingsFolder: string;
 	saveAudio: boolean;
+	summaryEnabled: boolean;
+	ollamaUrl: string;
+	ollamaModel: string;
+	summaryPrompt: string;
 }
+
+export const DEFAULT_SUMMARY_PROMPT = `You are summarizing a meeting transcript. Respond in clean Markdown with exactly these sections and nothing else:
+
+## Summary
+A concise paragraph (3-5 sentences) capturing the purpose and outcome.
+
+## Key points
+- The main topics, decisions, and conclusions, as short bullets.
+
+## Action items
+- [ ] Each task, including the owner if it was mentioned.
+
+Transcript:
+{{transcript}}`;
 
 export const DEFAULT_SETTINGS: MeetingNotesSettings = {
 	whisperBinaryPath: "whisper-cli",
@@ -22,6 +40,10 @@ export const DEFAULT_SETTINGS: MeetingNotesSettings = {
 	transcriptsFolder: "Meetings",
 	recordingsFolder: "Meetings/recordings",
 	saveAudio: true,
+	summaryEnabled: false,
+	ollamaUrl: "http://localhost:11434",
+	ollamaModel: "",
+	summaryPrompt: DEFAULT_SUMMARY_PROMPT,
 };
 
 export class MeetingNotesSettingTab extends PluginSettingTab {
@@ -171,5 +193,57 @@ export class MeetingNotesSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}),
 			);
+
+		// --- AI summary (local LLM via Ollama) ---
+		containerEl.createEl("h3", { text: "AI summary (optional)" });
+		containerEl.createEl("p", {
+			text: "Off by default. When enabled, the transcript is sent to a local Ollama instance to generate a summary and action items. This is a localhost request - nothing leaves your machine.",
+			cls: "setting-item-description",
+		});
+
+		new Setting(containerEl)
+			.setName("Generate summary")
+			.setDesc("Run each transcript through a local LLM after transcription.")
+			.addToggle((tg) =>
+				tg.setValue(this.plugin.settings.summaryEnabled).onChange(async (v) => {
+					this.plugin.settings.summaryEnabled = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Ollama URL")
+			.setDesc("Base URL of your local Ollama server.")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.ollamaUrl).onChange(async (v) => {
+					this.plugin.settings.ollamaUrl = v.trim() || "http://localhost:11434";
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Ollama model")
+			.setDesc('Model name as shown by `ollama list`, e.g. "llama3.1" or "gpt-oss:20b".')
+			.addText((t) =>
+				t
+					.setPlaceholder("llama3.1")
+					.setValue(this.plugin.settings.ollamaModel)
+					.onChange(async (v) => {
+						this.plugin.settings.ollamaModel = v.trim();
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Summary prompt")
+			.setDesc("Uses {{transcript}} as a placeholder for the transcript text.")
+			.addTextArea((ta) => {
+				ta.setValue(this.plugin.settings.summaryPrompt).onChange(async (v) => {
+					this.plugin.settings.summaryPrompt = v;
+					await this.plugin.saveSettings();
+				});
+				ta.inputEl.rows = 10;
+				ta.inputEl.style.width = "100%";
+			});
 	}
 }

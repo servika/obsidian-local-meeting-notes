@@ -14,6 +14,7 @@ Most Obsidian transcription plugins either send your audio to a cloud API, captu
 - 🎙️ **Captures the whole meeting.** Mixes your mic with the call's system audio (the other participants), not just you.
 - 🪶 **Zero infrastructure.** No companion server, no bundled multi-hundred-MB model, no `ffmpeg` - audio is resampled to whisper's format in-browser via `OfflineAudioContext`.
 - 📝 **Straight into your vault.** A timestamped Markdown note with frontmatter and the transcript, with the audio optionally saved alongside.
+- 🤖 **Optional AI summary & action items.** Opt-in summarization via a local [Ollama](https://ollama.com) model - still 100% on your machine, off by default.
 
 > **Desktop only.** Capturing system audio and running a local binary require Obsidian's desktop app.
 
@@ -120,6 +121,10 @@ Open **Settings → Local Meeting Notes**:
 | Transcripts folder | `Meetings` | Vault folder for transcript notes. |
 | Save audio file | `true` | Keep the recorded audio in the vault. |
 | Recordings folder | `Meetings/recordings` | Where saved audio goes. |
+| Generate summary | `false` | Run each transcript through a local LLM for a summary + action items. |
+| Ollama URL | `http://localhost:11434` | Base URL of your local Ollama server. |
+| Ollama model | - | Model name from `ollama list` (e.g. `llama3.1`, `gpt-oss:20b`). |
+| Summary prompt | *(built-in)* | Prompt template; `{{transcript}}` is replaced with the text. |
 
 ---
 
@@ -166,7 +171,7 @@ Source layout (within `packages/local-meeting-notes/`):
 
 ## Roadmap
 
-- [ ] AI summary & action items from the transcript (local LLM via Ollama, or Claude)
+- [x] AI summary & action items from the transcript (local LLM via Ollama)
 - [ ] Near-live transcription (rolling chunks)
 - [ ] Speaker diarization
 - [ ] Linux / Windows loopback setup guides
@@ -175,7 +180,9 @@ Source layout (within `packages/local-meeting-notes/`):
 
 ## Privacy
 
-This plugin makes **no network requests**. Audio is recorded, resampled, and transcribed entirely on your device. The only external programs invoked are the `whisper.cpp` binary and your model file, both of which you provide and which run locally.
+By default this plugin makes **no network requests**. Audio is recorded, resampled, and transcribed entirely on your device via the `whisper.cpp` binary and model you provide.
+
+The **only** outbound request is the optional AI summary, which is **off by default**. When you enable it, the transcript is sent to a **local Ollama instance on `localhost`** - it still never leaves your machine. If you don't enable summaries, no requests are made at all.
 
 ---
 

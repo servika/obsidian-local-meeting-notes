@@ -5,6 +5,7 @@ import * as path from "path";
 import { MeetingRecorder } from "./recorder";
 import { blobToWav16kMono } from "./wav";
 import { transcribe } from "./transcription";
+import { summarize } from "./summary";
 import {
 	DEFAULT_SETTINGS,
 	MeetingNotesSettings,
@@ -109,8 +110,24 @@ export default class MeetingNotesPlugin extends Plugin {
 			fs.rmSync(tmpWav, { force: true });
 		}
 
-		await this.writeNote(stamp, transcript);
-		new Notice("✅ Transcript ready");
+		let summary = "";
+		if (this.settings.summaryEnabled) {
+			new Notice(`Summarizing with ${this.settings.ollamaModel || "Ollama"}…`);
+			try {
+				summary = await summarize(transcript, {
+					url: this.settings.ollamaUrl,
+					model: this.settings.ollamaModel,
+					promptTemplate: this.settings.summaryPrompt,
+				});
+			} catch (e) {
+				// A summary failure must never lose the transcript.
+				new Notice("Summary failed (transcript still saved): " + (e as Error).message);
+				console.error("[meeting-notes] summary", e);
+			}
+		}
+
+		await this.writeNote(stamp, transcript, summary);
+		new Notice("✅ Meeting note ready");
 	}
 
 	private async saveAudio(blob: Blob, stamp: string): Promise<void> {
@@ -121,14 +138,15 @@ export default class MeetingNotesPlugin extends Plugin {
 		await this.app.vault.createBinary(audioPath, await blob.arrayBuffer());
 	}
 
-	private async writeNote(stamp: string, transcript: string): Promise<void> {
+	private async writeNote(stamp: string, transcript: string, summary = ""): Promise<void> {
 		await this.ensureFolder(this.settings.transcriptsFolder);
 		const notePath = normalizePath(
 			`${this.settings.transcriptsFolder}/Meeting ${stamp}.md`,
 		);
+		const summarySection = summary ? `${summary}\n\n` : "";
 		const body =
 			`---\ntype: meeting\ndate: ${stamp}\n---\n\n` +
-			`# Meeting - ${stamp}\n\n## Transcript\n\n${transcript || "_(empty)_"}\n`;
+			`# Meeting - ${stamp}\n\n${summarySection}## Transcript\n\n${transcript || "_(empty)_"}\n`;
 		const file = await this.app.vault.create(notePath, body);
 		if (file instanceof TFile) {
 			await this.app.workspace.getLeaf(true).openFile(file);
