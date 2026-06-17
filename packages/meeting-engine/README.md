@@ -57,10 +57,10 @@ swift run meeting-engine 10 /tmp/meeting-test [appNameToTap]
 
 - [x] System-audio capture via process taps → WAV
 - [x] Capture mic + system as separate tracks (free "me vs. them" diarization)
-- [ ] whisper.cpp transcription
+- [x] whisper.cpp transcription + You/Them diarization (`meeting-engine transcribe`)
 - [ ] Auto-start (EventKit calendar + call-app detection)
 - [ ] localhost HTTP/WebSocket API consumed by the Obsidian plugin
-- [ ] Speaker diarization (tinydiarize → sherpa-onnx embeddings)
+- [ ] Multi-speaker diarization (tinydiarize → sherpa-onnx embeddings)
 - [ ] Codesign + notarize; Homebrew tap distribution
 
 See the top-level project plan for the full architecture.
