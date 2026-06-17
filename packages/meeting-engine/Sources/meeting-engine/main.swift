@@ -1,28 +1,27 @@
 // meeting-engine - Phase 1 capture spike
 //
-// Goal: prove we can capture macOS *system audio* (the other meeting
-// participants) with no virtual device (no BlackHole), using Core Audio process
-// taps (macOS 14.4+). It taps the global system output, runs for N seconds, and
-// writes a WAV. This is the make-or-break assumption for the hybrid architecture.
+// Captures a meeting as TWO separate tracks, with no virtual device:
+//   • system audio (the other participants) via Core Audio process taps
+//     (AudioHardwareCreateProcessTap, macOS 14.4+)
+//   • your microphone via AVAudioEngine
 //
-// Usage:  meeting-engine [seconds] [output.wav]
-//   defaults: 8 seconds → /tmp/meeting-engine-capture.wav
+// Keeping them separate gives "me vs. them" speaker separation for free.
 //
-// Play some audio (a video, a song) while it runs, then inspect the WAV.
+// Usage:  meeting-engine [seconds] [outputBasePath]
+//   defaults: 8 seconds → /tmp/meeting-engine.system.wav + .mic.wav
+//
+// Play some audio and talk while it runs, then inspect the two WAVs.
 
 import Foundation
 import CoreAudio
 import AVFoundation
 
-// MARK: - small helpers
+// MARK: - helpers
 
-func log(_ msg: String) {
-	print("[meeting-engine] \(msg)")
-}
+func log(_ msg: String) { print("[meeting-engine] \(msg)") }
 
 func fail(_ label: String, _ status: OSStatus) -> Never {
-	FileHandle.standardError.write(
-		Data("[meeting-engine] \(label) failed: OSStatus \(status)\n".utf8))
+	FileHandle.standardError.write(Data("[meeting-engine] \(label) failed: OSStatus \(status)\n".utf8))
 	exit(1)
 }
 
@@ -30,7 +29,15 @@ func require(_ status: OSStatus, _ label: String) {
 	if status != noErr { fail(label, status) }
 }
 
-/// Read the tap's UID (needed to reference it from an aggregate device).
+/// Open a WAV whose processing format matches `format` exactly (avoids -50 on write).
+func openWav(_ url: URL, _ format: AVAudioFormat) -> AVAudioFile? {
+	try? AVAudioFile(
+		forWriting: url,
+		settings: format.settings,
+		commonFormat: format.commonFormat,
+		interleaved: format.isInterleaved)
+}
+
 func tapUID(_ tapID: AudioObjectID) -> CFString? {
 	var address = AudioObjectPropertyAddress(
 		mSelector: kAudioTapPropertyUID,
@@ -42,7 +49,6 @@ func tapUID(_ tapID: AudioObjectID) -> CFString? {
 	return status == noErr ? uid?.takeRetainedValue() : nil
 }
 
-/// Read the tap's stream format so we can match the output file to it.
 func tapFormat(_ tapID: AudioObjectID) -> AudioStreamBasicDescription? {
 	var address = AudioObjectPropertyAddress(
 		mSelector: kAudioTapPropertyFormat,
@@ -57,12 +63,11 @@ func tapFormat(_ tapID: AudioObjectID) -> AudioStreamBasicDescription? {
 // MARK: - args
 
 let seconds = CommandLine.arguments.count > 1 ? (Double(CommandLine.arguments[1]) ?? 8) : 8
-let outPath = CommandLine.arguments.count > 2
-	? CommandLine.arguments[2]
-	: "/tmp/meeting-engine-capture.wav"
-let outURL = URL(fileURLWithPath: outPath)
+let outBase = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "/tmp/meeting-engine"
+let systemURL = URL(fileURLWithPath: outBase + ".system.wav")
+let micURL = URL(fileURLWithPath: outBase + ".mic.wav")
 
-// MARK: - 1. create a global system-audio tap (exclude nothing = whole system)
+// MARK: - system-audio track (Core Audio process tap)
 
 let tapDescription = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
 tapDescription.name = "meeting-engine-system-tap"
@@ -71,93 +76,98 @@ tapDescription.muteBehavior = .unmuted // keep the user hearing the meeting
 
 var tapID = AudioObjectID(kAudioObjectUnknown)
 require(AudioHardwareCreateProcessTap(tapDescription, &tapID), "AudioHardwareCreateProcessTap")
-log("created system-audio tap (id \(tapID))")
-
 guard let uid = tapUID(tapID) else { fail("read tap UID", -1) }
-guard var asbd = tapFormat(tapID) else { fail("read tap format", -1) }
-log(String(format: "tap format: %.0f Hz, %u ch", asbd.mSampleRate, asbd.mChannelsPerFrame))
+guard var sysASBD = tapFormat(tapID) else { fail("read tap format", -1) }
+log(String(format: "system tap: %.0f Hz, %u ch", sysASBD.mSampleRate, sysASBD.mChannelsPerFrame))
 
-// MARK: - 2. wrap the tap in a private aggregate device so we can run an IO proc
-
-let aggUID = "com.servika.meeting-engine.agg.\(UUID().uuidString)"
 let aggDescription: [String: Any] = [
 	kAudioAggregateDeviceNameKey as String: "meeting-engine-agg",
-	kAudioAggregateDeviceUIDKey as String: aggUID,
+	kAudioAggregateDeviceUIDKey as String: "com.servika.meeting-engine.agg.\(UUID().uuidString)",
 	kAudioAggregateDeviceIsPrivateKey as String: true,
 	kAudioAggregateDeviceIsStackedKey as String: false,
 	kAudioAggregateDeviceTapAutoStartKey as String: true,
 	kAudioAggregateDeviceTapListKey as String: [
-		[
-			kAudioSubTapUIDKey as String: uid,
-			kAudioSubTapDriftCompensationKey as String: true,
-		],
+		[kAudioSubTapUIDKey as String: uid, kAudioSubTapDriftCompensationKey as String: true],
 	],
 ]
-
 var aggID = AudioObjectID(kAudioObjectUnknown)
 require(AudioHardwareCreateAggregateDevice(aggDescription as CFDictionary, &aggID),
 	"AudioHardwareCreateAggregateDevice")
-log("created aggregate device (id \(aggID))")
 
-// MARK: - 3. open the output file in the tap's format
+guard let sysFormat = AVAudioFormat(streamDescription: &sysASBD) else { fail("system AVAudioFormat", -1) }
+var systemSink = openWav(systemURL, sysFormat)
+if systemSink == nil { log("⚠️  could not open \(systemURL.lastPathComponent)") }
 
-guard let format = AVAudioFormat(streamDescription: &asbd) else { fail("build AVAudioFormat", -1) }
-log("buffer format: interleaved=\(format.isInterleaved) common=\(format.commonFormat.rawValue)")
-var sink: AVAudioFile?
-do {
-	// Match the file's processing format to the tap buffer exactly, otherwise
-	// ExtAudioFileWrite rejects the buffer with -50 (paramErr).
-	sink = try AVAudioFile(
-		forWriting: outURL,
-		settings: format.settings,
-		commonFormat: format.commonFormat,
-		interleaved: format.isInterleaved)
-} catch {
-	FileHandle.standardError.write(Data("[meeting-engine] open output failed: \(error)\n".utf8))
-	exit(1)
-}
-
-// MARK: - 4. install an IO proc that writes captured frames to the file
-
-var writeErrorLogged = false
+var sysWriteErrLogged = false
 let captureQueue = DispatchQueue(label: "com.servika.meeting-engine.capture")
-
 var ioProcID: AudioDeviceIOProcID?
 let ioBlock: AudioDeviceIOBlock = { _, inInputData, _, _, _ in
-	guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inInputData)
-	else { return }
+	guard let buffer = AVAudioPCMBuffer(pcmFormat: sysFormat, bufferListNoCopy: inInputData) else { return }
 	do {
-		try sink?.write(from: buffer)
+		try systemSink?.write(from: buffer)
 	} catch {
-		if !writeErrorLogged {
-			writeErrorLogged = true
-			FileHandle.standardError.write(Data("[meeting-engine] write error: \(error)\n".utf8))
-		}
+		if !sysWriteErrLogged { sysWriteErrLogged = true
+			FileHandle.standardError.write(Data("[meeting-engine] system write error: \(error)\n".utf8)) }
 	}
 }
-
 require(AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggID, captureQueue, ioBlock),
 	"AudioDeviceCreateIOProcIDWithBlock")
-require(AudioDeviceStart(aggID, ioProcID), "AudioDeviceStart")
 
-log("recording \(seconds)s → \(outURL.path)")
-log("▶️  play some audio now (a video, a song)…")
+// MARK: - microphone track (AVAudioEngine)
+
+let engine = AVAudioEngine()
+let micInput = engine.inputNode
+let micFormat = micInput.outputFormat(forBus: 0)
+var micSink: AVAudioFile?
+var micActive = false
+
+if micFormat.sampleRate > 0 && micFormat.channelCount > 0 {
+	log(String(format: "mic: %.0f Hz, %u ch", micFormat.sampleRate, micFormat.channelCount))
+	micSink = openWav(micURL, micFormat)
+	micInput.installTap(onBus: 0, bufferSize: 4096, format: micFormat) { buffer, _ in
+		try? micSink?.write(from: buffer)
+	}
+	do {
+		try engine.start()
+		micActive = true
+	} catch {
+		log("⚠️  mic engine failed to start (permission?): \(error.localizedDescription)")
+		micSink = nil
+	}
+} else {
+	log("⚠️  microphone unavailable (permission not granted?) - capturing system only")
+}
+
+// MARK: - run
+
+require(AudioDeviceStart(aggID, ioProcID), "AudioDeviceStart")
+log("recording \(seconds)s → \(systemURL.path) + \(micURL.lastPathComponent)")
+log("▶️  play some audio AND talk now…")
 Thread.sleep(forTimeInterval: seconds)
 
-// MARK: - 5. stop and tear everything down
+// MARK: - stop + finalize
 
 AudioDeviceStop(aggID, ioProcID)
 if let proc = ioProcID { AudioDeviceDestroyIOProcID(aggID, proc) }
 AudioHardwareDestroyAggregateDevice(aggID)
 AudioHardwareDestroyProcessTap(tapID)
 
-let writtenFrames = sink?.length ?? 0
-sink = nil // release the last reference → finalizes/flushes the WAV header
-
-if writtenFrames > 0 {
-	let secs = Double(writtenFrames) / asbd.mSampleRate
-	log("✅ done - wrote \(writtenFrames) frames (~\(String(format: "%.1f", secs))s) to \(outURL.path)")
-} else {
-	log("⚠️  done, but no audio frames were captured.")
-	log("    Likely causes: permission not granted, or nothing was playing.")
+if micActive {
+	engine.stop()
+	micInput.removeTap(onBus: 0)
 }
+
+let sysFrames = systemSink?.length ?? 0
+let micFrames = micSink?.length ?? 0
+systemSink = nil // release → flush WAV headers
+micSink = nil
+
+func report(_ label: String, _ frames: AVAudioFramePosition, _ rate: Double, _ url: URL) {
+	if frames > 0 {
+		log("✅ \(label): \(frames) frames (~\(String(format: "%.1f", Double(frames) / rate))s) → \(url.path)")
+	} else {
+		log("⚠️  \(label): no frames captured (permission denied, or nothing playing)")
+	}
+}
+report("system", sysFrames, sysASBD.mSampleRate, systemURL)
+report("mic", micFrames, micFormat.sampleRate > 0 ? micFormat.sampleRate : 1, micURL)
