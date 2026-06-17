@@ -4,6 +4,8 @@
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange) ![platform: desktop](https://img.shields.io/badge/platform-desktop-blue) ![license: MIT](https://img.shields.io/badge/license-MIT-green)
 
+🌐 **Website:** https://servika.github.io/ai-meeting-notes/
+
 Most Obsidian transcription plugins either send your audio to a cloud API, capture **only your microphone** (missing everyone else on the call), or require you to stand up a separate transcription server. AI Meeting Notes does none of that: it mixes your mic with system audio in-process, resamples in the browser (no `ffmpeg`), and shells out to a local `whisper.cpp` binary.
 
 ---
