@@ -1,7 +1,10 @@
 /**
  * Captures one or two audio inputs (e.g. microphone + a system-audio loopback
- * device such as BlackHole), mixes them with the Web Audio API, and records the
- * mix to a single WebM/Opus blob.
+ * device such as BlackHole) with the Web Audio API and records to a WebM/Opus
+ * blob. When both sources are present they are kept separate as a stereo split -
+ * mic on the left channel, system audio on the right - so speaker separation is
+ * preserved in the archive (useful for diarization). Transcription downmixes
+ * this to mono later, which simply averages the two channels back together.
  */
 export class MeetingRecorder {
 	private ctx: AudioContext | null = null;
@@ -21,8 +24,8 @@ export class MeetingRecorder {
 		this.ctx = new AudioContext();
 		const dest = this.ctx.createMediaStreamDestination();
 
-		const addSource = async (deviceId?: string) => {
-			if (!deviceId) return;
+		const getSource = async (deviceId?: string) => {
+			if (!deviceId) return null;
 			const stream = await navigator.mediaDevices.getUserMedia({
 				audio: {
 					deviceId: { exact: deviceId },
@@ -33,13 +36,24 @@ export class MeetingRecorder {
 				},
 			});
 			this.streams.push(stream);
-			this.ctx!.createMediaStreamSource(stream).connect(dest);
+			return this.ctx!.createMediaStreamSource(stream);
 		};
 
-		await addSource(micDeviceId);
-		await addSource(systemDeviceId);
+		const mic = await getSource(micDeviceId);
+		const system = await getSource(systemDeviceId);
 
-		if (this.streams.length === 0) {
+		if (mic && system) {
+			// Stereo split: mic → left channel, system → right channel. The merger's
+			// inputs are mono, so each source is downmixed onto its single channel.
+			const merger = this.ctx.createChannelMerger(2);
+			mic.connect(merger, 0, 0);
+			system.connect(merger, 0, 1);
+			merger.connect(dest);
+		} else if (mic || system) {
+			// Single source - record it as-is rather than a half-silent stereo file.
+			(mic ?? system)!.connect(dest);
+		} else {
+			// No devices selected - fall back to the default microphone.
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 			this.streams.push(stream);
 			this.ctx.createMediaStreamSource(stream).connect(dest);

@@ -1,7 +1,9 @@
 /**
  * Decode an arbitrary audio blob and re-render it to the format whisper.cpp
  * expects: 16 kHz, mono, 16-bit PCM WAV. Done entirely in the browser via
- * OfflineAudioContext so we don't need ffmpeg on the user's machine.
+ * OfflineAudioContext so we don't need ffmpeg on the user's machine. A stereo
+ * recording (mic-left / system-right) is downmixed to mono here automatically -
+ * the single mono channel is the average of both, i.e. the full meeting.
  */
 export async function blobToWav16kMono(blob: Blob): Promise<ArrayBuffer> {
 	const arrayBuffer = await blob.arrayBuffer();

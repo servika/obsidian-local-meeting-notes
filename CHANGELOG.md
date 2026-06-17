@@ -15,7 +15,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.1.0] - 2026-06-12
 
 ### Added
-- Record microphone + system audio (e.g. BlackHole) mixed via the Web Audio API.
+- Record microphone + system audio (e.g. BlackHole) via the Web Audio API, kept as a stereo split (mic on the left channel, system on the right) to preserve speaker separation in the saved audio.
 - In-browser resampling to 16 kHz mono WAV via `OfflineAudioContext` (no `ffmpeg` dependency).
 - Local transcription by shelling out to a `whisper.cpp` binary (`whisper-cli`).
 - Transcript written to a timestamped Markdown note with frontmatter; optional saved audio.
