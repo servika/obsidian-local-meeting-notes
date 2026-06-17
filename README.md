@@ -1,10 +1,10 @@
-# Local Meeting Notes
+# AI Meeting Notes
 
 > Record meetings - **your microphone + the other participants' audio** - and transcribe them **100% locally** with [whisper.cpp](https://github.com/ggerganov/whisper.cpp). No cloud, no API keys, no companion server. Your audio never leaves your machine.
 
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange) ![platform: desktop](https://img.shields.io/badge/platform-desktop-blue) ![license: MIT](https://img.shields.io/badge/license-MIT-green)
 
-Most Obsidian transcription plugins either send your audio to a cloud API, capture **only your microphone** (missing everyone else on the call), or require you to stand up a separate transcription server. Local Meeting Notes does none of that: it mixes your mic with system audio in-process, resamples in the browser (no `ffmpeg`), and shells out to a local `whisper.cpp` binary.
+Most Obsidian transcription plugins either send your audio to a cloud API, capture **only your microphone** (missing everyone else on the call), or require you to stand up a separate transcription server. AI Meeting Notes does none of that: it mixes your mic with system audio in-process, resamples in the browser (no `ffmpeg`), and shells out to a local `whisper.cpp` binary.
 
 ---
 
@@ -74,20 +74,20 @@ Larger models (`small`, `medium`, `large-v3`) are more accurate but slower. Brow
 ### Via BRAT (recommended while in alpha)
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) community plugin.
-2. BRAT → **Add Beta Plugin** → `servika/obsidian-local-meeting-notes`.
-3. Enable **Local Meeting Notes** in **Settings → Community plugins**.
+2. BRAT → **Add Beta Plugin** → `servika/obsidian-ai-meeting-notes`.
+3. Enable **AI Meeting Notes** in **Settings → Community plugins**.
 
 ### Manual
 
-1. Download `main.js`, `manifest.json`, and `versions.json` from the [latest release](https://github.com/servika/obsidian-local-meeting-notes/releases).
-2. Copy them into `<your-vault>/.obsidian/plugins/local-meeting-notes/`.
+1. Download `main.js`, `manifest.json`, and `versions.json` from the [latest release](https://github.com/servika/obsidian-ai-meeting-notes/releases).
+2. Copy them into `<your-vault>/.obsidian/plugins/ai-meeting-notes/`.
 3. Reload Obsidian and enable the plugin under **Settings → Community plugins**.
 
 ---
 
 ## Setup in Obsidian
 
-Open **Settings → Local Meeting Notes**:
+Open **Settings → AI Meeting Notes**:
 
 1. Click **Grant** to allow microphone access (needed once so device names appear).
 2. Choose your **Microphone** and your **System audio (loopback)** device (e.g. *BlackHole 2ch*).
@@ -140,11 +140,11 @@ Open **Settings → Local Meeting Notes**:
 
 ## Development
 
-The plugin lives in `packages/local-meeting-notes/` (monorepo layout).
+The plugin lives in `packages/ai-meeting-notes/` (monorepo layout).
 
 ```bash
-git clone https://github.com/servika/obsidian-local-meeting-notes
-cd obsidian-local-meeting-notes/packages/local-meeting-notes
+git clone https://github.com/servika/obsidian-ai-meeting-notes
+cd obsidian-ai-meeting-notes/packages/ai-meeting-notes
 npm install
 npm run dev     # watch build → main.js
 npm run build   # type-check + production build
@@ -153,11 +153,11 @@ npm run build   # type-check + production build
 For live iteration, symlink the **package** directory into a test vault:
 
 ```bash
-# from packages/local-meeting-notes
-ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/local-meeting-notes"
+# from packages/ai-meeting-notes
+ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/ai-meeting-notes"
 ```
 
-Source layout (within `packages/local-meeting-notes/`):
+Source layout (within `packages/ai-meeting-notes/`):
 
 | File | Role |
 |---|---|

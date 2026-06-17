@@ -32,7 +32,7 @@ two entry points below.
 ```bash
 cd packages/meeting-engine
 ./scripts/build-app.sh
-open ".build/Meeting Engine.app"
+open ".build/AI Meeting Notes.app"
 ```
 
 A window appears - click **Record**, **Allow** the audio prompt when it appears,

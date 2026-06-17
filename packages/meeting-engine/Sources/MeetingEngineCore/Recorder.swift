@@ -110,23 +110,42 @@ public enum MeetingEngine {
 		try check(AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggID, captureQueue, ioBlock),
 			"AudioDeviceCreateIOProcIDWithBlock")
 
-		// 5. Mic via AVAudioEngine.
+		// 5. Mic via AVAudioEngine. Use the input node's real hardware format, and
+		// create the output file lazily from the FIRST buffer's format so the file
+		// always matches what the tap actually delivers (a mismatch silently fails
+		// every write, yielding an empty mic track).
 		let engine = AVAudioEngine()
 		let micInput = engine.inputNode
-		let micFormat = micInput.outputFormat(forBus: 0)
+		let micHWFormat = micInput.inputFormat(forBus: 0)
 		var micSink: AVAudioFile?
 		var micActive = false
-		if micFormat.sampleRate > 0 && micFormat.channelCount > 0 {
-			log(String(format: "mic: %.0f Hz, %u ch", micFormat.sampleRate, micFormat.channelCount))
-			micSink = try? AVAudioFile(
-				forWriting: micURL, settings: micFormat.settings,
-				commonFormat: micFormat.commonFormat, interleaved: micFormat.isInterleaved)
-			micInput.installTap(onBus: 0, bufferSize: 4096, format: micFormat) { buf, _ in
-				try? micSink?.write(from: buf)
+		var micWriteErrLogged = false
+		if micHWFormat.sampleRate > 0 && micHWFormat.channelCount > 0 {
+			log(String(format: "mic: %.0f Hz, %u ch", micHWFormat.sampleRate, micHWFormat.channelCount))
+			micInput.installTap(onBus: 0, bufferSize: 4096, format: nil) { buffer, _ in
+				if micSink == nil {
+					micSink = try? AVAudioFile(
+						forWriting: micURL, settings: buffer.format.settings,
+						commonFormat: buffer.format.commonFormat, interleaved: buffer.format.isInterleaved)
+				}
+				do {
+					try micSink?.write(from: buffer)
+				} catch {
+					if !micWriteErrLogged {
+						micWriteErrLogged = true
+						log("mic write error: \(error.localizedDescription)")
+					}
+				}
 			}
-			if (try? engine.start()) != nil { micActive = true } else { micSink = nil }
+			engine.prepare()
+			do {
+				try engine.start()
+				micActive = true
+			} catch {
+				log("mic engine failed to start: \(error.localizedDescription)")
+			}
 		} else {
-			log("microphone unavailable (permission not granted?)")
+			log("microphone unavailable (permission not granted, or no input device)")
 		}
 
 		// 6. Run.

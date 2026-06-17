@@ -22,5 +22,5 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ribbon icon, status-bar recording indicator, and start/stop/toggle commands.
 - Optional AI summary & action items via a local Ollama LLM (opt-in, off by default; configurable URL, model, and prompt). The transcript is preserved even if summarization fails.
 
-[Unreleased]: https://github.com/servika/obsidian-local-meeting-notes/compare/0.1.0...HEAD
-[0.1.0]: https://github.com/servika/obsidian-local-meeting-notes/releases/tag/0.1.0
+[Unreleased]: https://github.com/servika/obsidian-ai-meeting-notes/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/servika/obsidian-ai-meeting-notes/releases/tag/0.1.0

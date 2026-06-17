@@ -5,14 +5,14 @@
 # "Screen & System Audio Recording" permission prompt. Ad-hoc signing is fine
 # for local testing; distribution needs a Developer ID + notarization.
 #
-# Output: .build/Meeting Engine.app
+# Output: .build/AI Meeting Notes.app
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 swift build -c release --product MeetingEngineApp
 BIN="$(swift build -c release --show-bin-path)/MeetingEngineApp"
-APP=".build/Meeting Engine.app"
+APP=".build/AI Meeting Notes.app"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
@@ -23,8 +23,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key><string>Meeting Engine</string>
-	<key>CFBundleDisplayName</key><string>Meeting Engine</string>
+	<key>CFBundleName</key><string>AI Meeting Notes</string>
+	<key>CFBundleDisplayName</key><string>AI Meeting Notes</string>
 	<key>CFBundleIdentifier</key><string>com.servika.meeting-engine</string>
 	<key>CFBundleExecutable</key><string>MeetingEngineApp</string>
 	<key>CFBundlePackageType</key><string>APPL</string>

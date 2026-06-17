@@ -1,16 +1,16 @@
 # Contributing
 
-Thanks for your interest in improving Local Meeting Notes! This is an early-stage,
+Thanks for your interest in improving AI Meeting Notes! This is an early-stage,
 desktop-only Obsidian plugin and contributions are very welcome - especially
 **Linux and Windows loopback support**, which the author can't test on macOS.
 
 ## Getting started
 
-The plugin lives in `packages/local-meeting-notes/`.
+The plugin lives in `packages/ai-meeting-notes/`.
 
 ```bash
-git clone https://github.com/servika/obsidian-local-meeting-notes
-cd obsidian-local-meeting-notes/packages/local-meeting-notes
+git clone https://github.com/servika/obsidian-ai-meeting-notes
+cd obsidian-ai-meeting-notes/packages/ai-meeting-notes
 npm install
 npm run dev   # watch build → main.js
 ```
@@ -18,8 +18,8 @@ npm run dev   # watch build → main.js
 Symlink the **package** directory into a **test vault** (not your main one) and enable the plugin:
 
 ```bash
-# from packages/local-meeting-notes
-ln -s "$(pwd)" "<test-vault>/.obsidian/plugins/local-meeting-notes"
+# from packages/ai-meeting-notes
+ln -s "$(pwd)" "<test-vault>/.obsidian/plugins/ai-meeting-notes"
 ```
 
 Reload Obsidian (Cmd-R) after each build, or toggle the plugin off/on.

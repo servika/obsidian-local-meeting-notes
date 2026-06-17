@@ -1,6 +1,6 @@
 {
-  "id": "local-meeting-notes",
-  "name": "Local Meeting Notes",
+  "id": "ai-meeting-notes",
+  "name": "AI Meeting Notes",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
   "description": "Record meetings (your mic + system audio) and transcribe them 100% locally with whisper.cpp. Nothing leaves your machine.",

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/local-meeting-notes
+        working-directory: packages/ai-meeting-notes
     steps:
       - uses: actions/checkout@v4
 

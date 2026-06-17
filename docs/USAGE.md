@@ -1,4 +1,4 @@
-# Using Local Meeting Notes
+# Using AI Meeting Notes
 
 A step-by-step walkthrough from zero to your first transcribed meeting. If you
 just want the reference tables, see the [README](../README.md). This guide
@@ -24,9 +24,9 @@ headphones **and** BlackHole at the same time.
 ```
                        ┌─► Headphones (you hear it)
 Call audio ─► Multi-Output Device ┤
-                       └─► BlackHole ─► Local Meeting Notes (records it)
+                       └─► BlackHole ─► AI Meeting Notes (records it)
 
-Your voice ─► Microphone ─────────► Local Meeting Notes (records it)
+Your voice ─► Microphone ─────────► AI Meeting Notes (records it)
 ```
 
 You set this up **once**. After that, recording a meeting is two clicks.
@@ -58,8 +58,8 @@ You'll switch your Mac's output to this device during meetings (next section).
 
 ### 3. Configure the plugin in Obsidian
 
-1. **Settings → Community plugins** → enable **Local Meeting Notes**.
-2. Open **Settings → Local Meeting Notes** and:
+1. **Settings → Community plugins** → enable **AI Meeting Notes**.
+2. Open **Settings → AI Meeting Notes** and:
    - Click **Grant** to allow microphone access (needed once so device names
      appear).
    - **Microphone** → your mic.
@@ -124,7 +124,7 @@ is **off by default** and runs entirely on your machine via [Ollama](https://oll
    ollama serve            # leave running (or it starts on login)
    ollama pull llama3.1    # or any model you like
    ```
-2. In **Settings → Local Meeting Notes → AI summary**:
+2. In **Settings → AI Meeting Notes → AI summary**:
    - Turn on **Generate summary**.
    - Set **Ollama model** to the model you pulled (e.g. `llama3.1`).
    - Leave **Ollama URL** at `http://localhost:11434` unless you changed it.

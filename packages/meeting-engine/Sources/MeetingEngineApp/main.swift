@@ -36,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 			contentRect: NSRect(x: 0, y: 0, width: 420, height: 150),
 			styleMask: [.titled, .closable, .miniaturizable],
 			backing: .buffered, defer: false)
-		window.title = "Meeting Engine"
+		window.title = "AI Meeting Notes"
 		window.contentView = content
 		window.center()
 		window.makeKeyAndOrderFront(nil)
