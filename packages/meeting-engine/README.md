@@ -4,10 +4,13 @@ Native macOS capture engine for the hybrid architecture - the eventual daemon
 that captures meeting audio, transcribes, and diarizes, exposing a localhost API
 to the Obsidian plugin (and future clients).
 
-**Current status: proof-of-concept.** Captures macOS audio with **no virtual
+**Current status: core validated.** Captures macOS audio with **no virtual
 device** (no BlackHole): two **separate tracks** - system audio (the other
 participants) via Core Audio **process taps** (`AudioHardwareCreateProcessTap`,
-macOS 14.4+) and your microphone via `AVAudioEngine`, one WAV each.
+macOS 14.4+) and your microphone via `AVAudioEngine`, one WAV each. System-audio
+capture is confirmed working end-to-end via the signed app (incl. on Bluetooth
+output). Remaining: harden the mic path, transcription + diarization, the
+localhost API, and proper notarized distribution.
 
 The capture pipeline is validated (mic captures real audio). System-audio capture
 additionally requires the macOS **"Screen & System Audio Recording"** permission,
