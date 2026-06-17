@@ -5,3 +5,6 @@ main.js
 .idea/
 # Obsidian writes per-vault plugin settings here
 data.json
+# Swift build output (meeting-engine)
+.build/
+.swiftpm/
