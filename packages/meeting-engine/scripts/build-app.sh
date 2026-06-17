@@ -48,8 +48,16 @@ ${ICON_KEY}
 </plist>
 PLIST
 
-# Ad-hoc sign with a stable identifier so TCC can track the grant.
-codesign --force --deep --sign - --identifier com.servika.meeting-engine "$APP"
+# Sign. With a Developer ID (set DEVELOPER_ID_APP), use Hardened Runtime +
+# entitlements so the app can be notarized; otherwise ad-hoc sign for local use.
+if [ -n "${DEVELOPER_ID_APP:-}" ]; then
+	echo "  signing with Developer ID: $DEVELOPER_ID_APP"
+	codesign --force --deep --options runtime \
+		--entitlements scripts/app.entitlements \
+		--sign "$DEVELOPER_ID_APP" "$APP"
+else
+	codesign --force --deep --sign - --identifier com.servika.meeting-engine "$APP"
+fi
 codesign --verify --verbose "$APP" 2>&1 | sed 's/^/  /'
 
 echo "built: $APP"
