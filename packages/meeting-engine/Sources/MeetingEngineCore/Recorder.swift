@@ -110,6 +110,18 @@ public enum MeetingEngine {
 		try check(AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggID, captureQueue, ioBlock),
 			"AudioDeviceCreateIOProcIDWithBlock")
 
+		// 5a. Microphone permission. AVAudioEngine input silently delivers no frames
+		// when mic access isn't granted, and never prompts on its own - so request
+		// it explicitly here (this is the call that surfaces the TCC prompt).
+		if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+			let sem = DispatchSemaphore(value: 0)
+			AVCaptureDevice.requestAccess(for: .audio) { _ in sem.signal() }
+			sem.wait()
+		}
+		if AVCaptureDevice.authorizationStatus(for: .audio) != .authorized {
+			log("microphone access not granted - mic track will be empty (grant it in System Settings → Privacy & Security → Microphone)")
+		}
+
 		// 5. Mic via AVAudioEngine. Use the input node's real hardware format, and
 		// create the output file lazily from the FIRST buffer's format so the file
 		// always matches what the tap actually delivers (a mismatch silently fails

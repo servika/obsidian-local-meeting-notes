@@ -48,6 +48,12 @@ public enum Transcriber {
 
 		let jsonPath = base + ".json"
 		defer { try? FileManager.default.removeItem(atPath: jsonPath) }
+		// A silent/empty track produces no JSON - treat that as zero segments
+		// rather than failing the whole transcription.
+		guard FileManager.default.fileExists(atPath: jsonPath) else {
+			log("\(speaker): no speech detected")
+			return []
+		}
 		let data = try Data(contentsOf: URL(fileURLWithPath: jsonPath))
 		guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
 			let rawSegs = root["transcription"] as? [[String: Any]]
