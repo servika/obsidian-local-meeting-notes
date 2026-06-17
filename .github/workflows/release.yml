@@ -11,6 +11,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/local-meeting-notes
     steps:
       - uses: actions/checkout@v4
 

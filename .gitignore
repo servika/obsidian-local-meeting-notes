@@ -3,3 +3,5 @@ main.js
 *.js.map
 .DS_Store
 .idea/
+# Obsidian writes per-vault plugin settings here
+data.json

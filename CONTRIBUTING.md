@@ -6,16 +6,19 @@ desktop-only Obsidian plugin and contributions are very welcome - especially
 
 ## Getting started
 
+The plugin lives in `packages/local-meeting-notes/`.
+
 ```bash
 git clone https://github.com/servika/obsidian-local-meeting-notes
-cd obsidian-local-meeting-notes
+cd obsidian-local-meeting-notes/packages/local-meeting-notes
 npm install
 npm run dev   # watch build → main.js
 ```
 
-Symlink the repo into a **test vault** (not your main one) and enable the plugin:
+Symlink the **package** directory into a **test vault** (not your main one) and enable the plugin:
 
 ```bash
+# from packages/local-meeting-notes
 ln -s "$(pwd)" "<test-vault>/.obsidian/plugins/local-meeting-notes"
 ```
 

@@ -135,21 +135,24 @@ Open **Settings → Local Meeting Notes**:
 
 ## Development
 
+The plugin lives in `packages/local-meeting-notes/` (monorepo layout).
+
 ```bash
 git clone https://github.com/servika/obsidian-local-meeting-notes
-cd obsidian-local-meeting-notes
+cd obsidian-local-meeting-notes/packages/local-meeting-notes
 npm install
 npm run dev     # watch build → main.js
 npm run build   # type-check + production build
 ```
 
-For live iteration, symlink the repo into a test vault:
+For live iteration, symlink the **package** directory into a test vault:
 
 ```bash
+# from packages/local-meeting-notes
 ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/local-meeting-notes"
 ```
 
-Source layout:
+Source layout (within `packages/local-meeting-notes/`):
 
 | File | Role |
 |---|---|
