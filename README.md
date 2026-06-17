@@ -74,12 +74,12 @@ Larger models (`small`, `medium`, `large-v3`) are more accurate but slower. Brow
 ### Via BRAT (recommended while in alpha)
 
 1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) community plugin.
-2. BRAT → **Add Beta Plugin** → `servika/obsidian-ai-meeting-notes`.
+2. BRAT → **Add Beta Plugin** → `servika/ai-meeting-notes`.
 3. Enable **AI Meeting Notes** in **Settings → Community plugins**.
 
 ### Manual
 
-1. Download `main.js`, `manifest.json`, and `versions.json` from the [latest release](https://github.com/servika/obsidian-ai-meeting-notes/releases).
+1. Download `main.js`, `manifest.json`, and `versions.json` from the [latest release](https://github.com/servika/ai-meeting-notes/releases).
 2. Copy them into `<your-vault>/.obsidian/plugins/ai-meeting-notes/`.
 3. Reload Obsidian and enable the plugin under **Settings → Community plugins**.
 
@@ -143,8 +143,8 @@ Open **Settings → AI Meeting Notes**:
 The plugin lives in `packages/ai-meeting-notes/` (monorepo layout).
 
 ```bash
-git clone https://github.com/servika/obsidian-ai-meeting-notes
-cd obsidian-ai-meeting-notes/packages/ai-meeting-notes
+git clone https://github.com/servika/ai-meeting-notes
+cd ai-meeting-notes/packages/ai-meeting-notes
 npm install
 npm run dev     # watch build → main.js
 npm run build   # type-check + production build

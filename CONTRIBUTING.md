@@ -9,8 +9,8 @@ desktop-only Obsidian plugin and contributions are very welcome - especially
 The plugin lives in `packages/ai-meeting-notes/`.
 
 ```bash
-git clone https://github.com/servika/obsidian-ai-meeting-notes
-cd obsidian-ai-meeting-notes/packages/ai-meeting-notes
+git clone https://github.com/servika/ai-meeting-notes
+cd ai-meeting-notes/packages/ai-meeting-notes
 npm install
 npm run dev   # watch build → main.js
 ```
