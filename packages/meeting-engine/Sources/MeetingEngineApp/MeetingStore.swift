@@ -30,4 +30,21 @@ final class MeetingStore: ObservableObject {
 	func content(of meeting: Meeting) -> String {
 		(try? String(contentsOf: meeting.url, encoding: .utf8)) ?? ""
 	}
+
+	/// Rename a meeting note's file. Audio stays linked via the note's frontmatter.
+	/// Returns the renamed Meeting (for reselection), or nil on no-op/failure.
+	@discardableResult
+	func rename(_ meeting: Meeting, to newName: String) -> Meeting? {
+		let safe = newName
+			.replacingOccurrences(of: "/", with: "-")
+			.replacingOccurrences(of: ":", with: "-")
+			.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard !safe.isEmpty, safe != meeting.title else { return nil }
+		let dir = meeting.url.deletingLastPathComponent()
+		let newURL = dir.appendingPathComponent(safe + ".md")
+		guard !FileManager.default.fileExists(atPath: newURL.path) else { return nil }
+		do { try FileManager.default.moveItem(at: meeting.url, to: newURL) } catch { return nil }
+		reload(folder: dir)
+		return meetings.first { $0.url == newURL }
+	}
 }

@@ -34,7 +34,8 @@ public enum Transcriber {
 		}
 		let src = (wavPath as NSString).expandingTildeInPath
 		guard FileManager.default.fileExists(atPath: src) else {
-			throw EngineError(message: "audio file not found: \(src)")
+			log("\(speaker): audio track not found, skipping")
+			return []
 		}
 
 		let base = NSTemporaryDirectory() + "me-tx-\(UUID().uuidString)"
