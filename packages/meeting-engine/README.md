@@ -35,11 +35,20 @@ cd packages/meeting-engine
 open ".build/AI Meeting Notes.app"
 ```
 
-A window appears with live System/Mic level meters. Click **Record** (Allow the
-audio + microphone prompts on first use), hold your meeting, then **Stop &
-Transcribe**. The app transcribes both tracks and writes a diarized
-`Meeting <timestamp>.md` (You/Them) to your Desktop. Requires a whisper model at
-`~/models/ggml-base.en.bin`. (Ad-hoc signed; distribution needs a Developer ID +
+A SwiftUI app: a meetings library (sidebar) + detail view, with a Settings
+window (⌘,). First run, open **Settings** and:
+
+- Choose your **Obsidian vault** folder (notes go to `<vault>/Meetings`, audio to
+  `.../recordings`).
+- Set the **whisper model** path (default `~/models/ggml-base.en.bin`).
+- Pick a **summary engine** - local **Ollama** (choose/refresh installed models)
+  or the **Claude API** (API key) - or None.
+
+Then click **Record** (Allow the audio + microphone prompts on first use), hold
+your meeting watching the live System/Mic meters, and **Stop & Transcribe**. The
+app transcribes both tracks, generates a summary + action items, and writes a
+diarized `Meeting <timestamp>.md` into your vault - which then appears in the
+library to review. (Ad-hoc signed; distribution needs a Developer ID +
 notarization.)
 
 **CLI (dev iteration of the pipeline only):**
