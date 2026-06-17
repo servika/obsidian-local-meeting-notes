@@ -97,6 +97,8 @@ Open **Settings → Local Meeting Notes**:
 
 ## Usage
 
+> 📖 **New here? Read the [step-by-step usage guide](docs/USAGE.md)** - it walks through the macOS audio routing (the part people get stuck on) from zero to your first transcript.
+
 - Click the **microphone ribbon icon**, or run a command from the palette:
   - **Start meeting recording**
   - **Stop recording & transcribe**
