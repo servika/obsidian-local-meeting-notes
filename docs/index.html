@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Meeting Notes - record, transcribe & summarize meetings locally</title>
+<meta name="description" content="A macOS app that records meetings (your mic + everyone else's audio), then transcribes and summarizes them 100% locally. No cloud required, no virtual audio device.">
+<style>
+  :root{
+    --indigo:#5c4cea; --purple:#9445d6; --ink:#1d1d2b; --muted:#5b5b6b;
+    --bg:#ffffff; --soft:#f5f4fb; --border:#e7e5f2; --code:#2b2740;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  header.hero{background:linear-gradient(135deg,var(--indigo),var(--purple));color:#fff;padding:72px 0 64px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);
+    border-radius:999px;padding:4px 12px;font-size:13px;margin-bottom:18px}
+  .hero h1{font-size:44px;line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.5px}
+  .hero p.tag{font-size:20px;opacity:.95;margin:0 0 28px;max-width:620px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px}
+  .btn.primary{background:#fff;color:var(--indigo)}
+  .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
+  .btn:hover{text-decoration:none;opacity:.92}
+  section{padding:52px 0;border-bottom:1px solid var(--border)}
+  h2{font-size:28px;font-weight:750;letter-spacing:-.3px;margin:0 0 18px}
+  h3{font-size:18px;margin:26px 0 8px}
+  .lead{font-size:18px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}.hero h1{font-size:34px}}
+  .card{background:var(--soft);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+  .card h4{margin:0 0 6px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  pre{background:var(--code);color:#e8e6f5;border-radius:12px;padding:16px 18px;overflow:auto;font-size:13.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;line-height:1.5}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;background:var(--soft);
+    border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:.92em}
+  pre code{background:none;border:none;padding:0}
+  ol li,ul li{margin:6px 0}
+  .diagram{background:var(--code);color:#cfcaf0;border-radius:12px;padding:18px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+    font-size:13px;white-space:pre;overflow:auto;line-height:1.45}
+  .note{background:#fff8ec;border:1px solid #f0dcae;border-radius:10px;padding:12px 16px;font-size:14.5px}
+  footer{padding:40px 0;color:var(--muted);font-size:14px;text-align:center}
+  .pill{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">macOS · 100% local · open source</span>
+    <h1>AI Meeting Notes</h1>
+    <p class="tag">Record your meetings - your microphone <em>and</em> everyone else on the call - then transcribe and summarize them entirely on your Mac. No cloud required. No virtual audio device.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/servika/ai-meeting-notes">View on GitHub</a>
+      <a class="btn ghost" href="#install">Install &amp; setup</a>
+    </div>
+  </div>
+</header>
+
+<section id="what">
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="lead">Click Record at the start of a call. When it ends, you get a Markdown note in your vault with a summary, action items, and a speaker-labeled transcript - all generated locally.</p>
+    <div class="grid">
+      <div class="card"><h4>🔒 Fully local &amp; private</h4><p>Transcription runs on your machine via whisper.cpp. Summaries can use a local model (Ollama). Nothing is uploaded unless you opt into the cloud summary.</p></div>
+      <div class="card"><h4>🎙️ Captures the whole meeting</h4><p>Records your mic <em>and</em> the other participants’ audio as separate tracks - no BlackHole or Multi-Output Device to configure.</p></div>
+      <div class="card"><h4>🗣️ Speaker-labeled transcript</h4><p>Because the two sides are separate tracks, every line is labeled <strong>You</strong> or <strong>Them</strong> - no diarization model needed.</p></div>
+      <div class="card"><h4>🌍 Any language</h4><p>Auto-detects and transcribes the spoken language with a multilingual model.</p></div>
+      <div class="card"><h4>📝 Summary &amp; action items</h4><p>Generated by a local Ollama model or the Claude API - switchable, with a per-model prompt you control.</p></div>
+      <div class="card"><h4>🗂️ A meetings library</h4><p>Browse past meetings, rename them, re-generate the transcript/summary, or delete a meeting and its audio.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <div class="diagram"> Mic ─┐
+      ├─►  Core Audio capture  ─►  whisper.cpp  ─►  diarized transcript
+ Sys ─┘   (no BlackHole)                              │
+                                          local LLM (Ollama) or Claude
+                                                     │
+                                       Markdown note in your Obsidian vault</div>
+    <p style="margin-top:16px;color:var(--muted)">System audio is captured with macOS Core Audio process taps (macOS 14.4+), so there’s nothing to route manually. Transcription is batch: record the whole meeting, then process on stop.</p>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="wrap">
+    <h2>Requirements</h2>
+    <ul>
+      <li><strong>macOS 14.4 or later</strong> (Apple Silicon recommended).</li>
+      <li>A <strong>whisper model</strong> - download one from inside the app (Settings → Transcription).</li>
+      <li><strong>whisper.cpp</strong> - <code>brew install whisper-cpp</code>.</li>
+      <li><em>Optional, for summaries:</em> <a href="https://ollama.com">Ollama</a> (local) or a Claude API key.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install &amp; setup</h2>
+    <p class="lead">Notarized downloads are coming. For now, build from source:</p>
+    <pre><code>git clone https://github.com/servika/ai-meeting-notes
+cd ai-meeting-notes/packages/meeting-engine
+./scripts/build-app.sh
+open ".build/AI Meeting Notes.app"</code></pre>
+
+    <h3>First run</h3>
+    <ol>
+      <li>Press <strong>⌘,</strong> to open Settings.</li>
+      <li><strong>Choose your Obsidian vault</strong> (notes go to <code>&lt;vault&gt;/Meetings</code>, audio to <code>.../recordings</code>).</li>
+      <li>Pick or <strong>download a whisper model</strong>; set <strong>Language</strong> to <code>auto</code>.</li>
+      <li>Choose a <strong>summary engine</strong> - local Ollama or Claude API - or None.</li>
+    </ol>
+    <p class="note">When you click Record the first time, macOS will ask permission to record audio and use the microphone - click <strong>Allow</strong> for both.</p>
+  </div>
+</section>
+
+<section id="using">
+  <div class="wrap">
+    <h2>Using it</h2>
+    <ul>
+      <li><strong>Record / Stop:</strong> click Record at the start of a call; watch the live System &amp; Mic level meters; click Stop &amp; Transcribe at the end.</li>
+      <li><strong>Review:</strong> the new meeting appears in the sidebar with its summary, action items, and transcript.</li>
+      <li><strong>Rename:</strong> edit the title on the right; the audio stays linked.</li>
+      <li><strong>Re-generate:</strong> re-transcribe &amp; re-summarize with your current settings (model, language, prompt) - great after switching to a multilingual model.</li>
+      <li><strong>Delete:</strong> remove a meeting and its recordings from the detail view or the list’s right-click menu.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="privacy">
+  <div class="wrap">
+    <h2>Privacy</h2>
+    <p>Recording, transcription, and (with Ollama) summarization all happen on your device. The only time data leaves your Mac is if you choose the <strong>Claude API</strong> summary engine, which sends the transcript text to Anthropic. Local-only setups make no network requests except downloading a model when you ask.</p>
+  </div>
+</section>
+
+<section id="obsidian">
+  <div class="wrap">
+    <h2>Prefer Obsidian?</h2>
+    <p>This project also ships as an <strong>Obsidian plugin</strong> that records and transcribes inside your vault (using a BlackHole loopback device for system audio). See the <a href="https://github.com/servika/ai-meeting-notes/tree/main/packages/ai-meeting-notes">plugin README</a> and the <a href="https://github.com/servika/ai-meeting-notes/blob/main/docs/USAGE.md">setup guide</a>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>AI Meeting Notes · <a href="https://github.com/servika/ai-meeting-notes">github.com/servika/ai-meeting-notes</a> · MIT License</p>
+  </div>
+</footer>
+
+</body>
+</html>
