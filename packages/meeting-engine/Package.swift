@@ -8,13 +8,17 @@ let package = Package(
 		.macOS("14.4"),
 	],
 	targets: [
+		// Reusable capture engine (shared by the CLI and the GUI app).
+		.target(name: "MeetingEngineCore"),
+
+		// Headless CLI for dev iteration of the capture pipeline. Cannot obtain
+		// the system-audio permission (that needs the GUI app), but is useful for
+		// exercising the engine and the mic path.
 		.executableTarget(
 			name: "meeting-engine",
-			// Info.plist is embedded via the linker below, not bundled as a resource.
+			dependencies: ["MeetingEngineCore"],
 			exclude: ["Info.plist"],
 			linkerSettings: [
-				// Embed an Info.plist so TCC can show the audio-capture permission prompt
-				// even though this is a plain SwiftPM executable, not an .app bundle.
 				.unsafeFlags([
 					"-Xlinker", "-sectcreate",
 					"-Xlinker", "__TEXT",
@@ -22,6 +26,13 @@ let package = Package(
 					"-Xlinker", "Sources/meeting-engine/Info.plist",
 				]),
 			]
+		),
+
+		// Real AppKit app - the signed bundle that can request the macOS
+		// system-audio-recording permission. Built into a .app by scripts/build-app.sh.
+		.executableTarget(
+			name: "MeetingEngineApp",
+			dependencies: ["MeetingEngineCore"]
 		),
 	]
 )

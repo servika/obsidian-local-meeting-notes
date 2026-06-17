@@ -4,27 +4,43 @@ Native macOS capture engine for the hybrid architecture - the eventual daemon
 that captures meeting audio, transcribes, and diarizes, exposing a localhost API
 to the Obsidian plugin (and future clients).
 
-**Current status: proof-of-concept.** This spike validates the make-or-break
-assumption: capturing macOS audio with **no virtual device** (no BlackHole). It
-records two **separate tracks** - system audio (the other participants) via Core
-Audio **process taps** (`AudioHardwareCreateProcessTap`, macOS 14.4+) and your
-microphone via `AVAudioEngine` - writing one WAV each.
+**Current status: proof-of-concept.** Captures macOS audio with **no virtual
+device** (no BlackHole): two **separate tracks** - system audio (the other
+participants) via Core Audio **process taps** (`AudioHardwareCreateProcessTap`,
+macOS 14.4+) and your microphone via `AVAudioEngine`, one WAV each.
+
+The capture pipeline is validated (mic captures real audio). System-audio capture
+additionally requires the macOS **"Screen & System Audio Recording"** permission,
+which **only a real signed app can request** - a CLI is silently denied. Hence the
+two entry points below.
+
+## Layout
+
+- `Sources/MeetingEngineCore` - the reusable capture engine (`MeetingEngine.record`).
+- `Sources/meeting-engine` - headless CLI for dev iteration of the pipeline.
+  Cannot obtain the system-audio permission, so its system track stays silent.
+- `Sources/MeetingEngineApp` - minimal AppKit app; the **signed bundle that can
+  request the permission**.
 
 ## Build & run
 
+**GUI app (needed for system-audio capture):**
+
 ```bash
 cd packages/meeting-engine
-swift build
-swift run meeting-engine 10 ~/Desktop/meeting-test   # 10s -> .system.wav + .mic.wav
+./scripts/build-app.sh
+open ".build/Meeting Engine.app"
 ```
 
-The first run triggers macOS permission prompts for audio + microphone capture
-(the embedded `Info.plist` provides the usage strings). Grant them, **play some
-audio and talk**, then inspect the two WAVs - `*.system.wav` should hold the
-played audio and `*.mic.wav` your voice, captured without any virtual-device setup.
+A window appears - click **Record**, **Allow** the audio prompt when it appears,
+then play audio + talk. Output goes to `~/Desktop/meeting-engine-app.{system,mic}.wav`.
+(Ad-hoc signed; distribution needs a Developer ID + notarization.)
 
-If you see `⚠️ no audio frames were captured`, the permission was denied - grant
-it under **System Settings → Privacy & Security** and re-run.
+**CLI (dev iteration of the pipeline only):**
+
+```bash
+swift run meeting-engine 10 /tmp/meeting-test [appNameToTap]
+```
 
 ## Why process taps (not ScreenCaptureKit / BlackHole)
 
