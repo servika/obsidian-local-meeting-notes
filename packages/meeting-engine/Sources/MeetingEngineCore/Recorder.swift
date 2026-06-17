@@ -21,6 +21,22 @@ private func check(_ status: OSStatus, _ label: String) throws {
 	if status != noErr { throw EngineError(message: "\(label): OSStatus \(status)") }
 }
 
+/// Peak absolute sample amplitude (0…1) across all channels of a float buffer.
+func bufferPeak(_ buffer: AVAudioPCMBuffer) -> Float {
+	guard let channels = buffer.floatChannelData else { return 0 }
+	let frames = Int(buffer.frameLength)
+	let channelCount = Int(buffer.format.channelCount)
+	var peak: Float = 0
+	for c in 0..<channelCount {
+		let samples = channels[c]
+		for i in 0..<frames {
+			let v = abs(samples[i])
+			if v > peak { peak = v }
+		}
+	}
+	return peak
+}
+
 public struct CaptureResult {
 	public let systemFrames: Int64
 	public let micFrames: Int64
@@ -37,8 +53,13 @@ public enum MeetingEngine {
 		seconds: Double,
 		outBase: String,
 		appName: String?,
+		onLevel: ((Float, Float) -> Void)? = nil,
 		log: @escaping (String) -> Void
 	) throws -> CaptureResult {
+		// Latest peak levels (0…1) for the live meters, written from the audio
+		// threads and sampled by a timer below.
+		var systemLevel: Float = 0
+		var micLevel: Float = 0
 		let systemURL = URL(fileURLWithPath: (outBase as NSString).expandingTildeInPath + ".system.wav")
 		let micURL = URL(fileURLWithPath: (outBase as NSString).expandingTildeInPath + ".mic.wav")
 
@@ -105,6 +126,7 @@ public enum MeetingEngine {
 		var ioProcID: AudioDeviceIOProcID?
 		let ioBlock: AudioDeviceIOBlock = { _, inInputData, _, _, _ in
 			guard let buf = AVAudioPCMBuffer(pcmFormat: sysFormat, bufferListNoCopy: inInputData) else { return }
+			systemLevel = bufferPeak(buf)
 			try? systemSink?.write(from: buf)
 		}
 		try check(AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggID, captureQueue, ioBlock),
@@ -135,6 +157,7 @@ public enum MeetingEngine {
 		if micHWFormat.sampleRate > 0 && micHWFormat.channelCount > 0 {
 			log(String(format: "mic: %.0f Hz, %u ch", micHWFormat.sampleRate, micHWFormat.channelCount))
 			micInput.installTap(onBus: 0, bufferSize: 4096, format: nil) { buffer, _ in
+				micLevel = bufferPeak(buffer)
 				if micSink == nil {
 					micSink = try? AVAudioFile(
 						forWriting: micURL, settings: buffer.format.settings,
@@ -160,12 +183,24 @@ public enum MeetingEngine {
 			log("microphone unavailable (permission not granted, or no input device)")
 		}
 
-		// 6. Run.
+		// 6. Run. Sample the levels ~20×/sec for the live meters, decoupled from
+		// the audio callback rate.
+		var levelTimer: DispatchSourceTimer?
+		if let onLevel = onLevel {
+			let t = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "com.servika.meeting-engine.levels"))
+			t.schedule(deadline: .now(), repeating: 0.05)
+			t.setEventHandler { onLevel(systemLevel, micLevel) }
+			t.resume()
+			levelTimer = t
+		}
+
 		try check(AudioDeviceStart(aggID, ioProcID), "AudioDeviceStart")
 		log("recording \(seconds)s…")
 		Thread.sleep(forTimeInterval: seconds)
 
 		// 7. Stop + finalize.
+		levelTimer?.cancel()
+		onLevel?(0, 0)
 		AudioDeviceStop(aggID, ioProcID)
 		if let proc = ioProcID { AudioDeviceDestroyIOProcID(aggID, proc) }
 		if micActive { engine.stop(); micInput.removeTap(onBus: 0) }
