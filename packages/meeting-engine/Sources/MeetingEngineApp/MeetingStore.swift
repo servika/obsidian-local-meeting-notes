@@ -47,4 +47,16 @@ final class MeetingStore: ObservableObject {
 		reload(folder: dir)
 		return meetings.first { $0.url == newURL }
 	}
+
+	/// Delete a meeting: the note and its linked audio tracks.
+	func delete(_ meeting: Meeting) {
+		let dir = meeting.url.deletingLastPathComponent()
+		let content = (try? String(contentsOf: meeting.url, encoding: .utf8)) ?? ""
+		let audioBase = RecordingController.frontmatterValue("audio", in: content) ?? "recordings/\(meeting.title)"
+		try? FileManager.default.removeItem(at: meeting.url)
+		for ext in ["system.wav", "mic.wav"] {
+			try? FileManager.default.removeItem(at: dir.appendingPathComponent(audioBase + "." + ext))
+		}
+		reload(folder: dir)
+	}
 }

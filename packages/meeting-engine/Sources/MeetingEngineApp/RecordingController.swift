@@ -131,7 +131,7 @@ final class RecordingController: ObservableObject {
 		var summary = ""
 		if let engine = Self.engine(from: settings) {
 			DispatchQueue.main.async { self.status = "Summarizing…"; self.progress = 0.92 }
-			do { summary = try Summarizer.summarize(transcript: transcript, prompt: settings.summaryPrompt, engine: engine) }
+			do { summary = try Summarizer.summarize(transcript: transcript, prompt: settings.currentPrompt(), engine: engine) }
 			catch { DispatchQueue.main.async { self.status = "Summary skipped: \(error)" } }
 		}
 		return (transcript, summary)

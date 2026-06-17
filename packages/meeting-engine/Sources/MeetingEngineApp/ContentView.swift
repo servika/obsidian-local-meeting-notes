@@ -15,6 +15,12 @@ struct ContentView: View {
 						Text(meeting.modified, style: .date)
 							.font(.caption).foregroundStyle(.secondary)
 					}
+					.contextMenu {
+						Button("Delete", role: .destructive) {
+							store.delete(meeting)
+							if selection == meeting.id { selection = nil }
+						}
+					}
 				}
 				Divider()
 				recordPanel.padding(12)
@@ -31,7 +37,11 @@ struct ContentView: View {
 					onRename: { newName in
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
-					onRegenerate: { controller.regenerate(meeting) })
+					onRegenerate: { controller.regenerate(meeting) },
+					onDelete: {
+						store.delete(meeting)
+						selection = nil
+					})
 			} else {
 				ContentUnavailableView("No meeting selected", systemImage: "waveform",
 					description: Text("Record a meeting, or pick one from the list."))
@@ -90,7 +100,9 @@ struct MeetingDetail: View {
 	let status: String
 	let onRename: (String) -> Void
 	let onRegenerate: () -> Void
+	let onDelete: () -> Void
 	@State private var titleField = ""
+	@State private var confirmingDelete = false
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
@@ -103,8 +115,18 @@ struct MeetingDetail: View {
 					.disabled(titleField.trimmingCharacters(in: .whitespaces).isEmpty || titleField == meeting.title)
 				Button { onRegenerate() } label: { Label("Re-generate", systemImage: "arrow.clockwise") }
 					.disabled(busy)
+				Button(role: .destructive) { confirmingDelete = true } label: {
+					Label("Delete", systemImage: "trash")
+				}
+				.disabled(busy)
 			}
 			.padding()
+			.confirmationDialog("Delete “\(meeting.title)”?", isPresented: $confirmingDelete) {
+				Button("Delete meeting & recording", role: .destructive, action: onDelete)
+				Button("Cancel", role: .cancel) {}
+			} message: {
+				Text("This removes the note and its audio recordings. This can't be undone.")
+			}
 
 			if busy {
 				VStack(alignment: .leading, spacing: 4) {
