@@ -44,7 +44,7 @@ public enum Transcriber {
 			["-f", "WAVE", "-d", "LEI16@16000", "-c", "1", src, wav16])
 
 		log("transcribing \(speaker) track…")
-		try runProcess(whisperBin, ["-m", modelPath, "-f", wav16, "-oj", "-of", base, "-np"])
+		try runProcess(resolveBinary(whisperBin), ["-m", modelPath, "-f", wav16, "-oj", "-of", base, "-np"])
 
 		let jsonPath = base + ".json"
 		defer { try? FileManager.default.removeItem(atPath: jsonPath) }
@@ -89,6 +89,18 @@ public enum Transcriber {
 		}
 		flush()
 		return lines.joined(separator: "\n\n")
+	}
+
+	/// Resolve a bare command to an absolute path. The app, launched via
+	/// LaunchServices, has a minimal PATH that omits Homebrew, so `whisper-cli`
+	/// wouldn't be found via `env`.
+	private static func resolveBinary(_ name: String) -> String {
+		if name.hasPrefix("/") { return name }
+		for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"] {
+			let candidate = "\(dir)/\(name)"
+			if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }
+		}
+		return name // fall back to PATH via /usr/bin/env
 	}
 
 	private static func numberMS(_ value: Any?) -> Double {

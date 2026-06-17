@@ -35,9 +35,12 @@ cd packages/meeting-engine
 open ".build/AI Meeting Notes.app"
 ```
 
-A window appears - click **Record**, **Allow** the audio prompt when it appears,
-then play audio + talk. Output goes to `~/Desktop/meeting-engine-app.{system,mic}.wav`.
-(Ad-hoc signed; distribution needs a Developer ID + notarization.)
+A window appears with live System/Mic level meters. Click **Record** (Allow the
+audio + microphone prompts on first use), hold your meeting, then **Stop &
+Transcribe**. The app transcribes both tracks and writes a diarized
+`Meeting <timestamp>.md` (You/Them) to your Desktop. Requires a whisper model at
+`~/models/ggml-base.en.bin`. (Ad-hoc signed; distribution needs a Developer ID +
+notarization.)
 
 **CLI (dev iteration of the pipeline only):**
 
