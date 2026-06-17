@@ -9,9 +9,13 @@ final class RecordingController: ObservableObject {
 	@Published var status = "Ready."
 	@Published var systemLevel: Float = 0
 	@Published var micLevel: Float = 0
+	@Published var progress: Double = 0
+	@Published var elapsed: String = ""
 
 	private var recorder: MeetingRecorder?
 	private var stamp = ""
+	private var procTimer: Timer?
+	private var procStart: Date?
 	private let settings: AppSettings
 	private let store: MeetingStore
 
@@ -52,25 +56,32 @@ final class RecordingController: ObservableObject {
 		guard let r = recorder else { return }
 		isRecording = false
 		busy = true
+		progress = 0
 		status = "Finishing recording…"
+		startElapsedTimer()
 		let settings = self.settings
 		let store = self.store
 		let stamp = self.stamp
-		guard let meetingsDir = settings.meetingsDirURL else { busy = false; return }
+		guard let meetingsDir = settings.meetingsDirURL else { busy = false; stopElapsedTimer(); return }
 
 		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
 			let result = r.stop()
-			DispatchQueue.main.async { self?.systemLevel = 0; self?.micLevel = 0; self?.status = "Transcribing…" }
+			DispatchQueue.main.async { self?.systemLevel = 0; self?.micLevel = 0; self?.status = "Transcribing…"; self?.progress = 0.05 }
 
 			let model = (settings.whisperModelPath as NSString).expandingTildeInPath
+			let lang = settings.language.isEmpty ? "auto" : settings.language
+			// Stage weights: Them 0.05→0.50, You 0.50→0.90, summary 0.90→1.0
+			let setProgress: (Double) -> Void = { p in DispatchQueue.main.async { self?.progress = p } }
 			do {
-				let them = try Transcriber.transcribe(wavPath: result.systemURL.path, model: model, speaker: "Them", log: { _ in })
-				let you = try Transcriber.transcribe(wavPath: result.micURL.path, model: model, speaker: "You", log: { _ in })
+				let them = try Transcriber.transcribe(wavPath: result.systemURL.path, model: model, language: lang, speaker: "Them",
+					progress: { setProgress(0.05 + $0 * 0.45) }, log: { _ in })
+				let you = try Transcriber.transcribe(wavPath: result.micURL.path, model: model, language: lang, speaker: "You",
+					progress: { setProgress(0.50 + $0 * 0.40) }, log: { _ in })
 				let transcript = Transcriber.diarizedMarkdown(them + you)
 
 				var summary = ""
 				if let engine = Self.engine(from: settings) {
-					DispatchQueue.main.async { self?.status = "Summarizing…" }
+					DispatchQueue.main.async { self?.status = "Summarizing…"; self?.progress = 0.92 }
 					do { summary = try Summarizer.summarize(transcript: transcript, prompt: settings.summaryPrompt, engine: engine) }
 					catch { DispatchQueue.main.async { self?.status = "Summary skipped: \(error)" } }
 				}
@@ -82,6 +93,8 @@ final class RecordingController: ObservableObject {
 				DispatchQueue.main.async {
 					self?.recorder = nil
 					self?.busy = false
+					self?.progress = 1
+					self?.stopElapsedTimer()
 					self?.status = "✅ Saved \(noteURL.lastPathComponent)"
 					store.reload(folder: settings.meetingsDirURL)
 				}
@@ -89,10 +102,26 @@ final class RecordingController: ObservableObject {
 				DispatchQueue.main.async {
 					self?.recorder = nil
 					self?.busy = false
+					self?.stopElapsedTimer()
 					self?.status = "Failed: \(error)"
 				}
 			}
 		}
+	}
+
+	private func startElapsedTimer() {
+		procStart = Date()
+		elapsed = "0s"
+		procTimer?.invalidate()
+		procTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+			guard let self = self, let start = self.procStart else { return }
+			self.elapsed = String(format: "%.0fs", Date().timeIntervalSince(start))
+		}
+	}
+
+	private func stopElapsedTimer() {
+		procTimer?.invalidate()
+		procTimer = nil
 	}
 
 	private static func engine(from s: AppSettings) -> SummaryEngine? {

@@ -118,7 +118,7 @@ public final class MeetingRecorder {
 		let ioBlock: AudioDeviceIOBlock = { [weak self] _, inInputData, _, _, _ in
 			guard let self = self, let fmt = self.sysFormat,
 				let buf = AVAudioPCMBuffer(pcmFormat: fmt, bufferListNoCopy: inInputData) else { return }
-			self.systemLevel = bufferPeak(buf)
+			self.systemLevel = dbNormFromLinear(bufferPeak(buf))
 			try? self.systemSink?.write(from: buf)
 		}
 		try check(AudioDeviceCreateIOProcIDWithBlock(&ioProcID, aggID, captureQueue, ioBlock),
@@ -160,8 +160,7 @@ public final class MeetingRecorder {
 			t.setEventHandler { [weak self] in
 				guard let self = self else { return }
 				if self.micActive, let ch = self.micFileOutput.connection(with: .audio)?.audioChannels.first {
-					let db = ch.averagePowerLevel
-					self.micLevel = db <= -80 ? 0 : Float(pow(10.0, Double(db) / 20.0))
+					self.micLevel = dbNormFromDB(ch.averagePowerLevel)
 				}
 				self.onLevel?(self.systemLevel, self.micLevel)
 			}
@@ -201,6 +200,7 @@ public final class MeetingRecorder {
 				do {
 					try runProcess("/usr/bin/afconvert",
 						["-f", "WAVE", "-d", "LEI16", "-c", "1", caf.path, micURL.path])
+					normalizeWav16(micURL.path) // boost a quiet mic
 					if let f = try? AVAudioFile(forReading: micURL) { micFrames = f.length }
 				} catch {
 					log("mic conversion failed: \(error.localizedDescription)")
@@ -245,6 +245,63 @@ final class MicRecordingDelegate: NSObject, AVCaptureFileOutputRecordingDelegate
 	) {
 		done.signal()
 	}
+}
+
+/// Map a linear peak (0…1) to a dB-based meter value (0…1), so quiet-but-present
+/// speech reads as a useful level instead of a sliver. -60 dBFS → 0, 0 dBFS → 1.
+func dbNormFromLinear(_ peak: Float) -> Float {
+	guard peak > 1e-7 else { return 0 }
+	return dbNormFromDB(20 * log10f(peak))
+}
+
+func dbNormFromDB(_ db: Float) -> Float {
+	return max(0, min(1, (db + 60) / 60))
+}
+
+/// Peak-normalize a 16-bit PCM WAV in place to make a quiet mic audible. Only
+/// boosts (never attenuates), skips near-silence so noise isn't amplified, and
+/// caps the gain.
+func normalizeWav16(_ path: String, targetPeak: Float = 0.9, maxGain: Float = 8, floor: Float = 0.003) {
+	let url = URL(fileURLWithPath: path)
+	guard var data = try? Data(contentsOf: url), let range = wavDataChunkRange(data) else { return }
+	let count = range.count / 2
+	guard count > 0 else { return }
+
+	var samples = [Int16](repeating: 0, count: count)
+	samples.withUnsafeMutableBytes { dst in
+		data.copyBytes(to: dst, from: range)
+	}
+
+	var peak: Int32 = 0
+	for s in samples { let a = Int32(s).magnitude > 32767 ? 32767 : Int32(abs(Int32(s))); if a > peak { peak = a } }
+	let peakF = Float(peak) / 32767.0
+	guard peakF >= floor else { return } // basically silence
+	let gain = min(targetPeak / peakF, maxGain)
+	guard gain > 1.05 else { return } // already loud enough
+
+	for i in 0..<count {
+		let v = (Float(samples[i]) * gain).rounded()
+		samples[i] = Int16(max(-32768, min(32767, v)))
+	}
+	samples.withUnsafeBytes { src in
+		data.replaceSubrange(range, with: src)
+	}
+	try? data.write(to: url)
+}
+
+/// Byte range of the `data` chunk body in a RIFF/WAV file.
+func wavDataChunkRange(_ data: Data) -> Range<Int>? {
+	let bytes = [UInt8](data)
+	guard bytes.count > 12, Array(bytes[0..<4]) == Array("RIFF".utf8) else { return nil }
+	var pos = 12
+	while pos + 8 <= bytes.count {
+		let id = String(bytes: bytes[pos..<pos + 4], encoding: .ascii) ?? ""
+		let size = Int(bytes[pos + 4]) | (Int(bytes[pos + 5]) << 8) | (Int(bytes[pos + 6]) << 16) | (Int(bytes[pos + 7]) << 24)
+		let bodyStart = pos + 8
+		if id == "data" { return bodyStart..<min(bodyStart + size, bytes.count) }
+		pos = bodyStart + size + (size & 1)
+	}
+	return nil
 }
 
 /// Peak absolute sample amplitude (0…1) across all channels of a float buffer.

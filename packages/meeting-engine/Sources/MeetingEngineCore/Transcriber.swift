@@ -23,7 +23,9 @@ public enum Transcriber {
 		wavPath: String,
 		model: String,
 		whisperBin: String = "whisper-cli",
+		language: String = "auto",
 		speaker: String,
+		progress: ((Double) -> Void)? = nil,
 		log: (String) -> Void
 	) throws -> [TranscriptSegment] {
 		let modelPath = (model as NSString).expandingTildeInPath
@@ -44,7 +46,9 @@ public enum Transcriber {
 			["-f", "WAVE", "-d", "LEI16@16000", "-c", "1", src, wav16])
 
 		log("transcribing \(speaker) track…")
-		try runProcess(resolveBinary(whisperBin), ["-m", modelPath, "-f", wav16, "-oj", "-of", base, "-np"])
+		try runWhisper(resolveBinary(whisperBin),
+			["-m", modelPath, "-f", wav16, "-l", language, "-oj", "-pp", "-of", base],
+			progress: progress)
 
 		let jsonPath = base + ".json"
 		defer { try? FileManager.default.removeItem(atPath: jsonPath) }
@@ -136,4 +140,53 @@ func runProcess(_ command: String, _ args: [String]) throws {
 		let errStr = String(data: errData, encoding: .utf8) ?? ""
 		throw EngineError(message: "\(command) exited \(proc.terminationStatus): \(String(errStr.suffix(400)))")
 	}
+}
+
+/// Run whisper-cli, streaming its stderr to report progress (0…1) parsed from
+/// its `progress = NN%` lines. stdout is discarded so it can't fill the pipe.
+func runWhisper(_ command: String, _ args: [String], progress: ((Double) -> Void)?) throws {
+	let proc = Process()
+	if command.hasPrefix("/") {
+		proc.executableURL = URL(fileURLWithPath: command)
+		proc.arguments = args
+	} else {
+		proc.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+		proc.arguments = [command] + args
+	}
+	proc.standardOutput = FileHandle.nullDevice
+	let errPipe = Pipe()
+	proc.standardError = errPipe
+	let handle = errPipe.fileHandleForReading
+	let lock = NSLock()
+	var errBuffer = Data()
+	handle.readabilityHandler = { h in
+		let chunk = h.availableData
+		if chunk.isEmpty { return }
+		lock.lock(); errBuffer.append(chunk); lock.unlock()
+		if let s = String(data: chunk, encoding: .utf8), let p = lastProgressFraction(in: s) {
+			progress?(p)
+		}
+	}
+	do {
+		try proc.run()
+	} catch {
+		handle.readabilityHandler = nil
+		throw EngineError(message: "failed to launch \(command): \(error.localizedDescription)")
+	}
+	proc.waitUntilExit()
+	handle.readabilityHandler = nil
+	if proc.terminationStatus != 0 {
+		lock.lock(); let s = String(data: errBuffer, encoding: .utf8) ?? ""; lock.unlock()
+		throw EngineError(message: "\(command) exited \(proc.terminationStatus): \(String(s.suffix(400)))")
+	}
+}
+
+/// Parse the last "progress = NN%" value from a chunk of whisper output.
+private func lastProgressFraction(in s: String) -> Double? {
+	var result: Double?
+	for tail in s.components(separatedBy: "progress = ").dropFirst() {
+		let digits = tail.prefix { $0.isNumber }
+		if let n = Double(digits) { result = n / 100.0 }
+	}
+	return result
 }

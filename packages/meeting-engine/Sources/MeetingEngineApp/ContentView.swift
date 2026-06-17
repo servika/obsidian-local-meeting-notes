@@ -33,17 +33,27 @@ struct ContentView: View {
 
 	private var recordPanel: some View {
 		VStack(alignment: .leading, spacing: 8) {
-			HStack(spacing: 8) {
-				Button(controller.isRecording ? "Stop & Transcribe" : "Record") {
-					controller.toggle()
-				}
-				.controlSize(.large)
-				.disabled(controller.busy)
-				.keyboardShortcut(.defaultAction)
-				if controller.busy { ProgressView().controlSize(.small) }
+			Button(controller.isRecording ? "Stop & Transcribe" : "Record") {
+				controller.toggle()
 			}
-			LevelBar(label: "System", level: controller.systemLevel)
-			LevelBar(label: "Mic", level: controller.micLevel)
+			.controlSize(.large)
+			.disabled(controller.busy)
+			.keyboardShortcut(.defaultAction)
+
+			if controller.busy {
+				ProgressView(value: controller.progress)
+					.progressViewStyle(.linear)
+				HStack {
+					Text("\(Int(controller.progress * 100))%")
+					Spacer()
+					Text(controller.elapsed)
+				}
+				.font(.caption).foregroundStyle(.secondary)
+			} else {
+				LevelBar(label: "System", level: controller.systemLevel)
+				LevelBar(label: "Mic", level: controller.micLevel)
+			}
+
 			Text(controller.status)
 				.font(.caption).foregroundStyle(.secondary)
 				.lineLimit(3).fixedSize(horizontal: false, vertical: true)

@@ -8,6 +8,7 @@ final class AppSettings: ObservableObject {
 	@Published var vaultPath: String { didSet { d.set(vaultPath, forKey: "vaultPath") } }
 	@Published var meetingsFolder: String { didSet { d.set(meetingsFolder, forKey: "meetingsFolder") } }
 	@Published var whisperModelPath: String { didSet { d.set(whisperModelPath, forKey: "whisperModelPath") } }
+	@Published var language: String { didSet { d.set(language, forKey: "language") } }
 	@Published var summaryEngine: String { didSet { d.set(summaryEngine, forKey: "summaryEngine") } } // none|ollama|claude
 	@Published var ollamaURL: String { didSet { d.set(ollamaURL, forKey: "ollamaURL") } }
 	@Published var ollamaModel: String { didSet { d.set(ollamaModel, forKey: "ollamaModel") } }
@@ -18,7 +19,8 @@ final class AppSettings: ObservableObject {
 	init() {
 		vaultPath = d.string(forKey: "vaultPath") ?? ""
 		meetingsFolder = d.string(forKey: "meetingsFolder") ?? "Meetings"
-		whisperModelPath = d.string(forKey: "whisperModelPath") ?? "~/models/ggml-base.en.bin"
+		whisperModelPath = d.string(forKey: "whisperModelPath") ?? "~/models/ggml-base.bin"
+		language = d.string(forKey: "language") ?? "auto"
 		summaryEngine = d.string(forKey: "summaryEngine") ?? "ollama"
 		ollamaURL = d.string(forKey: "ollamaURL") ?? "http://localhost:11434"
 		ollamaModel = d.string(forKey: "ollamaModel") ?? ""

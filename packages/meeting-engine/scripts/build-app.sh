@@ -15,10 +15,18 @@ BIN="$(swift build -c release --show-bin-path)/MeetingEngineApp"
 APP=".build/AI Meeting Notes.app"
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/MeetingEngineApp"
 
-cat > "$APP/Contents/Info.plist" <<'PLIST'
+# Generate + embed the app icon (best-effort).
+if swift scripts/make-icon.swift "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then
+	ICON_KEY="	<key>CFBundleIconFile</key><string>AppIcon</string>"
+else
+	echo "  (icon generation skipped)"
+	ICON_KEY=""
+fi
+
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -33,6 +41,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 	<key>LSMinimumSystemVersion</key><string>14.4</string>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 	<key>NSHighResolutionCapable</key><true/>
+${ICON_KEY}
 	<key>NSAudioCaptureUsageDescription</key><string>Records system audio (the other meeting participants) to transcribe your meetings locally.</string>
 	<key>NSMicrophoneUsageDescription</key><string>Records your microphone to transcribe your meetings locally.</string>
 </dict>

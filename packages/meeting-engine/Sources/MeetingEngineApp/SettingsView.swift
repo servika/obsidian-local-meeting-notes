@@ -20,6 +20,9 @@ struct SettingsView: View {
 
 			Section("Transcription") {
 				TextField("Whisper model path", text: $settings.whisperModelPath)
+				TextField("Language (auto, en, uk, de, …)", text: $settings.language)
+				Text("Auto-detect / non-English needs a multilingual model (e.g. ~/models/ggml-base.bin), not the .en model.")
+					.font(.caption).foregroundStyle(.secondary)
 			}
 
 			Section("Summary & action items") {
