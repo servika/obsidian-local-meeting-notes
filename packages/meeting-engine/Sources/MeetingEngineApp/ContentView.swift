@@ -339,21 +339,36 @@ struct NoteView: View {
 		}
 	}
 
-	/// Each `### topic` becomes a block (accent bar + heading + its paragraphs/bullets).
+	/// Each `### topic` becomes its own prominent block (numbered heading +
+	/// accent bar + its paragraphs/bullets), so topics stand apart from the
+	/// summary prose.
 	@ViewBuilder
 	private func topicBlocks(_ lines: [String]) -> some View {
 		let blocks = groupTopics(lines)
-		VStack(alignment: .leading, spacing: 14) {
-			ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
-				HStack(alignment: .top, spacing: 10) {
-					RoundedRectangle(cornerRadius: 2).fill(brand.opacity(0.5)).frame(width: 3)
-					VStack(alignment: .leading, spacing: 5) {
+		VStack(alignment: .leading, spacing: 12) {
+			ForEach(Array(blocks.enumerated()), id: \.offset) { i, block in
+				HStack(alignment: .top, spacing: 12) {
+					RoundedRectangle(cornerRadius: 3).fill(brand).frame(width: 4)
+					VStack(alignment: .leading, spacing: 8) {
 						if !block.title.isEmpty {
-							Text(block.title).font(.subheadline.weight(.semibold))
+							HStack(alignment: .firstTextBaseline, spacing: 8) {
+								Text("\(i + 1)")
+									.font(.caption.weight(.bold))
+									.foregroundStyle(.white)
+									.frame(width: 22, height: 22)
+									.background(Circle().fill(brand))
+								Text(block.title)
+									.font(.title3.weight(.semibold))
+									.foregroundStyle(.primary)
+							}
 						}
 						richText(block.lines)
+							.font(.body)
 					}
 				}
+				.padding(14)
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.background(RoundedRectangle(cornerRadius: 10).fill(brand.opacity(0.06)))
 			}
 		}
 	}

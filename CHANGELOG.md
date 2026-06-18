@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.3.2] - 2026-06-18
+
+#### Changed
+- **Topics discussed** now renders each topic as a larger, clearly separated
+  block - numbered badge, prominent heading, accent bar, and a tinted
+  background - so topics stand apart from the summary prose.
+
 ### [0.3.1] - 2026-06-18
 
 #### Changed
