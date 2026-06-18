@@ -101,8 +101,16 @@ public enum Transcriber {
 	/// Resolve a bare command to an absolute path. The app, launched via
 	/// LaunchServices, has a minimal PATH that omits Homebrew, so `whisper-cli`
 	/// wouldn't be found via `env`.
+	///
+	/// Resolution order: an explicit absolute path, then the copy bundled inside
+	/// the app (`Contents/Resources/<name>`, self-contained - no Homebrew
+	/// needed), then Homebrew/system locations for CLI and dev use.
 	private static func resolveBinary(_ name: String) -> String {
 		if name.hasPrefix("/") { return name }
+		if let resources = Bundle.main.resourceURL {
+			let bundled = resources.appendingPathComponent(name).path
+			if FileManager.default.isExecutableFile(atPath: bundled) { return bundled }
+		}
 		for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"] {
 			let candidate = "\(dir)/\(name)"
 			if FileManager.default.isExecutableFile(atPath: candidate) { return candidate }

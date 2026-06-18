@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.7.0] - 2026-06-18
+
+#### Added
+- **Bundled whisper.cpp** - the app now ships a self-contained, native
+  `whisper-cli` inside the bundle (`Contents/Resources/whisper-cli`), so there's
+  no longer any need to `brew install whisper-cpp`. Built statically and signed
+  by `scripts/build-whisper.sh` (pinned to whisper.cpp v1.8.6); the transcriber
+  prefers the bundled binary and only falls back to Homebrew/system paths for
+  CLI and dev use.
+
 ### [0.6.1] - 2026-06-18
 
 #### Added

@@ -10,10 +10,10 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Distribution & packaging
 
-- **Bundle whisper.cpp into the app.**
-  Today the app shells out to `whisper-cli` resolved by absolute path, so users
-  must `brew install whisper-cpp`. Bundle the binary (and a default model, or
-  first-run download) so the app has no external dependency.
+- ~~**Bundle whisper.cpp into the app.**~~ ✅ Shipped in 0.7.0 - a static, native
+  `whisper-cli` is built by `scripts/build-whisper.sh` and bundled in
+  `Contents/Resources/`; no `brew install whisper-cpp` needed. (A default model
+  is still downloaded on first use via Settings → Transcription.)
 - **Developer ID signing + notarization + DMG.**
   Scripts already exist (`scripts/build-app.sh`, `scripts/make-dmg.sh`,
   `scripts/app.entitlements`) and are env-var gated on `DEVELOPER_ID_APP` /

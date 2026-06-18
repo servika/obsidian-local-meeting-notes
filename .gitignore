@@ -8,4 +8,6 @@ data.json
 # Swift build output (meeting-engine)
 .build/
 .swiftpm/
+# Bundled whisper-cli build artifact (rebuilt by scripts/build-whisper.sh)
+vendor/
 Screenshot*.png

@@ -20,6 +20,13 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/MeetingEngineApp"
 
+# Bundle a self-contained whisper-cli (static, native; built/cached by
+# build-whisper.sh) so the app needs no `brew install whisper-cpp`.
+echo "  bundling whisper-cli..."
+./scripts/build-whisper.sh
+cp vendor/whisper-cli "$APP/Contents/Resources/whisper-cli"
+chmod +x "$APP/Contents/Resources/whisper-cli"
+
 # Generate + embed the app icon (best-effort).
 if swift scripts/make-icon.swift "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then
 	ICON_KEY="	<key>CFBundleIconFile</key><string>AppIcon</string>"
@@ -52,12 +59,15 @@ PLIST
 
 # Sign. With a Developer ID (set DEVELOPER_ID_APP), use Hardened Runtime +
 # entitlements so the app can be notarized; otherwise ad-hoc sign for local use.
+# Sign nested code (the bundled whisper-cli) first, then the app - inside-out.
 if [ -n "${DEVELOPER_ID_APP:-}" ]; then
 	echo "  signing with Developer ID: $DEVELOPER_ID_APP"
+	codesign --force --options runtime --sign "$DEVELOPER_ID_APP" "$APP/Contents/Resources/whisper-cli"
 	codesign --force --deep --options runtime \
 		--entitlements scripts/app.entitlements \
 		--sign "$DEVELOPER_ID_APP" "$APP"
 else
+	codesign --force --sign - "$APP/Contents/Resources/whisper-cli"
 	codesign --force --deep --sign - --identifier com.servika.meeting-engine "$APP"
 fi
 codesign --verify --verbose "$APP" 2>&1 | sed 's/^/  /'
