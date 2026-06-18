@@ -197,6 +197,7 @@ final class RecordingController: ObservableObject {
 	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, summary: String, transcript: String) -> String {
 		var s = "---\ntype: meeting\ndate: \(date)\naudio: \(audioBase)\n"
 		if durationSeconds > 0 { s += "duration: \(durationSeconds)\n" }
+		s += "app_version: \(appVersion)\n"
 		s += "---\n\n# \(title)\n\n"
 		if !summary.isEmpty { s += summary + "\n\n" }
 		s += "## Transcript\n\n" + (transcript.isEmpty ? "_(no speech detected)_" : transcript) + "\n"

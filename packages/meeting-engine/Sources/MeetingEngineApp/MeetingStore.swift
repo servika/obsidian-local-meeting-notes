@@ -6,6 +6,8 @@ struct Meeting: Identifiable, Hashable {
 	let title: String
 	let modified: Date
 	let durationSeconds: Int
+	/// The app version that generated this note (empty for pre-versioning notes).
+	let appVersion: String
 }
 
 /// Lists meeting notes (`*.md`) in the configured vault folder.
@@ -25,7 +27,8 @@ final class MeetingStore: ObservableObject {
 				let mod = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
 				let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
 				let dur = Int(RecordingController.frontmatterValue("duration", in: content) ?? "") ?? 0
-				return Meeting(id: url.path, url: url, title: url.deletingPathExtension().lastPathComponent, modified: mod, durationSeconds: dur)
+				let ver = RecordingController.frontmatterValue("app_version", in: content) ?? ""
+				return Meeting(id: url.path, url: url, title: url.deletingPathExtension().lastPathComponent, modified: mod, durationSeconds: dur, appVersion: ver)
 			}
 			.sorted { $0.modified > $1.modified }
 	}
