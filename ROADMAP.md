@@ -58,6 +58,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 - **Keychain for the Claude API key.**
   Currently stored in UserDefaults as plaintext; move it to the Keychain.
-- **Language picker: drop Auto-detect?**
-  Open question - whether to force an explicit English/Ukrainian choice for
-  best transcription quality.
+- **Add more meeting languages.**
+  Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
+  language list in `meetingLanguages` beyond English/Ukrainian in a future
+  release, so users can pin other languages for best transcription quality.
