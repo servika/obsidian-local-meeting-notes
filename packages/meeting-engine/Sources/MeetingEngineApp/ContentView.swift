@@ -20,9 +20,12 @@ let meetingLanguages: [(code: String, name: String)] = [
 ]
 
 func durationLabel(_ seconds: Int) -> String {
-	let m = seconds / 60, s = seconds % 60
-	if m >= 60 { return String(format: "%d:%02d:%02d", m / 60, m % 60, s) }
-	return String(format: "%d:%02d", m, s)
+	let h = seconds / 3600, m = (seconds % 3600) / 60, s = seconds % 60
+	var parts: [String] = []
+	if h > 0 { parts.append("\(h) hr") }
+	if m > 0 { parts.append("\(m) min") }
+	if s > 0 || parts.isEmpty { parts.append("\(s) sec") }
+	return parts.joined(separator: " ")
 }
 
 struct ContentView: View {

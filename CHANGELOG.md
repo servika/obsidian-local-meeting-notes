@@ -13,6 +13,12 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.3.1] - 2026-06-18
+
+#### Changed
+- Meeting duration is now shown in plain words (e.g. `10 min 10 sec`,
+  `1 hr 5 min 0 sec`) instead of a `mm:ss` clock format.
+
 ### [0.3.0] - 2026-06-18
 
 #### Added
