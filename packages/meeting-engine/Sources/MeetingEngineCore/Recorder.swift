@@ -269,7 +269,7 @@ func normalizeWav16(_ path: String, targetPeak: Float = 0.9, maxGain: Float = 8,
 
 	var samples = [Int16](repeating: 0, count: count)
 	samples.withUnsafeMutableBytes { dst in
-		data.copyBytes(to: dst, from: range)
+		_ = data.copyBytes(to: dst, from: range)
 	}
 
 	var peak: Int32 = 0
