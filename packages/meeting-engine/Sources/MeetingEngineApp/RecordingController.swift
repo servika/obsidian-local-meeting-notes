@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import MeetingEngineCore
 
 /// Drives record → stop → transcribe → summarize → save-to-vault (and
@@ -11,8 +12,8 @@ final class RecordingController: ObservableObject {
 	@Published var micLevel: Float = 0
 	@Published var progress: Double = 0
 	@Published var elapsed: String = ""
-	/// Set when a new recording's note is created, so the UI can select it.
-	@Published var justCreatedID: String?
+	/// The meeting currently being recorded or processed (for selection + row icon).
+	@Published var activeID: String?
 
 	private var recorder: MeetingRecorder?
 	private var stamp = ""
@@ -58,10 +59,10 @@ final class RecordingController: ObservableObject {
 			let title = "Meeting \(stamp)"
 			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
 			let placeholder = Self.buildNote(title: title, date: stamp, audioBase: "recordings/Meeting \(stamp)",
-				summary: "", transcript: "_Recording in progress…_")
+				durationSeconds: 0, summary: "", transcript: "_Recording in progress…_")
 			try? placeholder.write(to: noteURL, atomically: true, encoding: .utf8)
 			store.reload(folder: meetingsDir)
-			justCreatedID = noteURL.path
+			activeID = noteURL.path
 		} catch {
 			status = "Couldn't start: \(error)"
 		}
@@ -89,12 +90,12 @@ final class RecordingController: ObservableObject {
 			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, cancel: token)
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, summary: summary, transcript: transcript)
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)")
 			} catch is CancelledError {
 				// Keep the recording as a re-generatable note.
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, summary: "",
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: "",
 					transcript: "_Transcription stopped. Open this meeting and click Re-generate to process it._")
 				try? note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "Stopped - re-generate when ready")
@@ -111,6 +112,7 @@ final class RecordingController: ObservableObject {
 		busy = true
 		progress = 0
 		status = "Re-generating…"
+		activeID = meeting.url.path
 		startElapsedTimer()
 		let token = CancelToken()
 		cancelToken = token
@@ -125,6 +127,7 @@ final class RecordingController: ObservableObject {
 			let audioBase = Self.frontmatterValue("audio", in: content) ?? "recordings/\(title)"
 			let systemWav = meetingsDir.appendingPathComponent(audioBase + ".system.wav").path
 			let micWav = meetingsDir.appendingPathComponent(audioBase + ".mic.wav").path
+			let dur = Int(Self.frontmatterValue("duration", in: content) ?? "") ?? Self.audioDurationSeconds(systemWav: systemWav, micWav: micWav)
 
 			guard FileManager.default.fileExists(atPath: systemWav) || FileManager.default.fileExists(atPath: micWav) else {
 				self.finish(status: "No saved audio found for this meeting.")
@@ -132,7 +135,7 @@ final class RecordingController: ObservableObject {
 			}
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, cancel: token)
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, summary: summary, transcript: transcript)
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "✅ Re-generated \(title)")
 			} catch is CancelledError {
@@ -174,6 +177,7 @@ final class RecordingController: ObservableObject {
 			self.busy = false
 			self.progress = 1
 			self.cancelToken = nil
+			self.activeID = nil
 			self.stopElapsedTimer()
 			self.status = status
 			self.store.reload(folder: self.settings.meetingsDirURL)
@@ -190,11 +194,24 @@ final class RecordingController: ObservableObject {
 		}
 	}
 
-	private static func buildNote(title: String, date: String, audioBase: String, summary: String, transcript: String) -> String {
-		var s = "---\ntype: meeting\ndate: \(date)\naudio: \(audioBase)\n---\n\n# \(title)\n\n"
+	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, summary: String, transcript: String) -> String {
+		var s = "---\ntype: meeting\ndate: \(date)\naudio: \(audioBase)\n"
+		if durationSeconds > 0 { s += "duration: \(durationSeconds)\n" }
+		s += "---\n\n# \(title)\n\n"
 		if !summary.isEmpty { s += summary + "\n\n" }
 		s += "## Transcript\n\n" + (transcript.isEmpty ? "_(no speech detected)_" : transcript) + "\n"
 		return s
+	}
+
+	/// Length (seconds) of a recording, from whichever track exists.
+	private static func audioDurationSeconds(systemWav: String, micWav: String) -> Int {
+		for p in [systemWav, micWav] {
+			if let f = try? AVAudioFile(forReading: URL(fileURLWithPath: p)) {
+				let secs = Double(f.length) / f.processingFormat.sampleRate
+				if secs > 0 { return Int(secs.rounded()) }
+			}
+		}
+		return 0
 	}
 
 	/// Read a `key: value` line from a note's YAML frontmatter block.

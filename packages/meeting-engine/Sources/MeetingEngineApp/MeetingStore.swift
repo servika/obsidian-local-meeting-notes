@@ -5,6 +5,7 @@ struct Meeting: Identifiable, Hashable {
 	let url: URL
 	let title: String
 	let modified: Date
+	let durationSeconds: Int
 }
 
 /// Lists meeting notes (`*.md`) in the configured vault folder.
@@ -22,7 +23,9 @@ final class MeetingStore: ObservableObject {
 			.filter { $0.pathExtension.lowercased() == "md" }
 			.map { url in
 				let mod = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-				return Meeting(id: url.path, url: url, title: url.deletingPathExtension().lastPathComponent, modified: mod)
+				let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+				let dur = Int(RecordingController.frontmatterValue("duration", in: content) ?? "") ?? 0
+				return Meeting(id: url.path, url: url, title: url.deletingPathExtension().lastPathComponent, modified: mod, durationSeconds: dur)
 			}
 			.sorted { $0.modified > $1.modified }
 	}

@@ -24,6 +24,7 @@ public struct CaptureResult {
 	public let micFrames: Int64
 	public let systemURL: URL
 	public let micURL: URL
+	public let duration: TimeInterval
 }
 
 /// Stateful recorder: `start()` begins capture, `stop()` finalizes and returns
@@ -176,7 +177,7 @@ public final class MeetingRecorder {
 	/// Stop capturing, finalize both files, and return them.
 	public func stop() -> CaptureResult {
 		guard isRecording else {
-			return CaptureResult(systemFrames: 0, micFrames: 0, systemURL: systemURL, micURL: micURL)
+			return CaptureResult(systemFrames: 0, micFrames: 0, systemURL: systemURL, micURL: micURL, duration: 0)
 		}
 		isRecording = false
 
@@ -211,9 +212,11 @@ public final class MeetingRecorder {
 
 		let sysFrames = systemSink?.length ?? 0
 		systemSink = nil
+		let rate = sysFormat?.sampleRate ?? 48_000
+		let duration = sysFrames > 0 ? Double(sysFrames) / rate : 0
 
 		return CaptureResult(systemFrames: sysFrames, micFrames: micFrames,
-			systemURL: systemURL, micURL: micURL)
+			systemURL: systemURL, micURL: micURL, duration: duration)
 	}
 }
 
