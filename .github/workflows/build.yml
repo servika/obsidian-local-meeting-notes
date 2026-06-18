@@ -6,7 +6,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  plugin:
+    name: Obsidian plugin
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,3 +19,40 @@ jobs:
           node-version: "20.x"
       - run: npm ci
       - run: npm run build
+
+  macos-app:
+    name: macOS app
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: packages/meeting-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain versions
+        run: swift --version && cmake --version
+
+      - name: Build Swift package
+        run: swift build
+
+      # whisper.cpp is compiled from a pinned source ref; cache the result so
+      # only the first run (or a script change) pays the build cost.
+      - name: Cache bundled whisper-cli
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/meeting-engine/vendor
+            packages/meeting-engine/.build/whisper-src
+            packages/meeting-engine/.build/whisper-build
+          key: whisper-${{ runner.os }}-${{ hashFiles('packages/meeting-engine/scripts/build-whisper.sh') }}
+
+      - name: Build .app (bundles + ad-hoc signs whisper-cli)
+        run: ./scripts/build-app.sh
+
+      - name: Verify app bundle
+        run: |
+          APP=".build/AI Meeting Notes.app"
+          test -x "$APP/Contents/MacOS/MeetingEngineApp"
+          test -x "$APP/Contents/Resources/whisper-cli"
+          file -b "$APP/Contents/Resources/whisper-cli"
+          codesign --verify --deep --verbose "$APP"

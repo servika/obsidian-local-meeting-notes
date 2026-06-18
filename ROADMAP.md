@@ -21,9 +21,9 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
   ($99/yr). Until then the app is ad-hoc signed (Gatekeeper warning on other
   Macs). Mac App Store is ruled out - the sandbox forbids process-tap
   system-audio capture and shelling out to `whisper-cli`.
-- **Swift CI.**
-  `.github/workflows/build.yml` only builds the Obsidian plugin. Add a macOS
-  job that builds the Swift package and the `.app`.
+- ~~**Swift CI.**~~ ✅ Done - `build.yml` now has a `macos-app` job that builds
+  the Swift package, runs `build-app.sh` (exercising the whisper bundling), and
+  verifies the signed `.app` bundle. whisper.cpp is cached between runs.
 
 ## Summary quality
 
