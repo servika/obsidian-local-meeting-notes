@@ -7,14 +7,33 @@ struct SettingsView: View {
 	@StateObject private var downloader = ModelDownloader()
 	@State private var ollamaModels: [String] = []
 	@State private var modelToDownload = "base"
+	@State private var overrideLang = "uk"
 
 	static var appVersion: String {
 		Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
 	}
 
 	private var modelExists: Bool {
-		let p = (settings.whisperModelPath as NSString).expandingTildeInPath
+		modelFileExists(settings.whisperModelPath)
+	}
+
+	private func modelFileExists(_ path: String) -> Bool {
+		let p = (path as NSString).expandingTildeInPath
 		return !p.isEmpty && FileManager.default.fileExists(atPath: p)
+	}
+
+	/// Language codes that currently have a per-language model override, sorted.
+	private var overrideLanguages: [String] {
+		settings.modelByLanguage.keys.sorted()
+	}
+
+	/// Selectable languages (excluding "auto" and ones already overridden).
+	private var unsetLanguages: [(code: String, name: String)] {
+		meetingLanguages.filter { $0.code != "auto" && settings.modelByLanguage[$0.code] == nil }
+	}
+
+	private func languageName(_ code: String) -> String {
+		meetingLanguages.first { $0.code == code }?.name ?? code
 	}
 
 	var body: some View {
@@ -29,7 +48,7 @@ struct SettingsView: View {
 
 			Section("Transcription") {
 				HStack {
-					TextField("Whisper model path", text: $settings.whisperModelPath)
+					TextField("Default whisper model path", text: $settings.whisperModelPath)
 					if modelExists {
 						Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
 					} else {
@@ -61,6 +80,42 @@ struct SettingsView: View {
 						.font(.caption).foregroundStyle(.secondary)
 				} else if !downloader.message.isEmpty {
 					Text(downloader.message).font(.caption).foregroundStyle(.secondary)
+				}
+			}
+
+			Section("Model per language (optional)") {
+				Text("Use a heavier model for specific languages - e.g. large-v3 for Ukrainian. Meetings in any language without an override use the default model above.")
+					.font(.caption).foregroundStyle(.secondary)
+
+				ForEach(overrideLanguages, id: \.self) { lang in
+					HStack {
+						Text(languageName(lang)).frame(width: 90, alignment: .leading)
+						TextField("model path", text: Binding(
+							get: { settings.modelByLanguage[lang] ?? "" },
+							set: { v in
+								var m = settings.modelByLanguage
+								m[lang] = v
+								settings.modelByLanguage = m
+							}))
+						if modelFileExists(settings.modelByLanguage[lang] ?? "") {
+							Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+						} else {
+							Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+						}
+						Button { settings.removeModel(for: lang) } label: { Image(systemName: "trash") }
+							.buttonStyle(.borderless)
+					}
+				}
+
+				HStack {
+					Picker("Add override for", selection: $overrideLang) {
+						ForEach(unsetLanguages, id: \.code) { Text($0.name).tag($0.code) }
+					}
+					Button("Add") {
+						settings.setModel(settings.whisperModelPath, for: overrideLang)
+						overrideLang = unsetLanguages.first?.code ?? "uk"
+					}
+					.disabled(unsetLanguages.isEmpty)
 				}
 			}
 

@@ -17,6 +17,9 @@ final class AppSettings: ObservableObject {
 	/// Per-model prompt overrides (keyed by model name). Falls back to the baked
 	/// default for that model when there's no override.
 	@Published var promptOverrides: [String: String] { didSet { d.set(promptOverrides, forKey: "promptOverrides") } }
+	/// Per-language whisper model overrides (keyed by language code, e.g. "uk").
+	/// Falls back to `whisperModelPath` when there's no override for a language.
+	@Published var modelByLanguage: [String: String] { didSet { d.set(modelByLanguage, forKey: "modelByLanguage") } }
 
 	init() {
 		vaultPath = d.string(forKey: "vaultPath") ?? ""
@@ -35,6 +38,27 @@ final class AppSettings: ObservableObject {
 			if !key.isEmpty { overrides[key] = legacy }
 		}
 		promptOverrides = overrides
+		modelByLanguage = (d.dictionary(forKey: "modelByLanguage") as? [String: String]) ?? [:]
+	}
+
+	/// The whisper model to use for a given language code: a per-language
+	/// override if one is set, otherwise the default `whisperModelPath`.
+	func modelPath(for language: String) -> String {
+		if let override = modelByLanguage[language], !override.isEmpty { return override }
+		return whisperModelPath
+	}
+
+	func setModel(_ path: String, for language: String) {
+		var m = modelByLanguage
+		let trimmed = path.trimmingCharacters(in: .whitespaces)
+		if trimmed.isEmpty { m.removeValue(forKey: language) } else { m[language] = trimmed }
+		modelByLanguage = m
+	}
+
+	func removeModel(for language: String) {
+		var m = modelByLanguage
+		m.removeValue(forKey: language)
+		modelByLanguage = m
 	}
 
 	/// `<vault>/<meetingsFolder>` - nil until a vault is configured.

@@ -9,7 +9,7 @@ final class ModelDownloader: NSObject, ObservableObject, URLSessionDownloadDeleg
 
 	static let available = [
 		"tiny", "tiny.en", "base", "base.en", "small", "small.en",
-		"medium", "medium.en", "large-v3-turbo",
+		"medium", "medium.en", "large-v3", "large-v3-turbo",
 	]
 
 	private var session: URLSession?

@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.3.0] - 2026-06-18
+
+#### Added
+- **Per-language whisper models**: assign a specific model to a language (e.g.
+  `large-v3` for Ukrainian) in Settings. Meetings in that language use the
+  assigned model; all others fall back to the default model path.
+- **`large-v3`** added to the in-app downloadable model list (full large model,
+  alongside `large-v3-turbo`).
+
 ### [0.2.0] - 2026-06-18
 
 #### Added

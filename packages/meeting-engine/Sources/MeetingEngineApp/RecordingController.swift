@@ -151,8 +151,8 @@ final class RecordingController: ObservableObject {
 	/// Transcribe both tracks (with weighted progress) and summarize. Runs on a
 	/// background queue; updates `progress`/`status` on the main queue.
 	private func transcribeAndSummarize(systemWav: String, micWav: String, cancel: CancelToken) throws -> (transcript: String, summary: String) {
-		let model = (settings.whisperModelPath as NSString).expandingTildeInPath
 		let lang = settings.language.isEmpty ? "auto" : settings.language
+		let model = (settings.modelPath(for: lang) as NSString).expandingTildeInPath
 		let setProgress: (Double) -> Void = { p in DispatchQueue.main.async { self.progress = p } }
 
 		DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
