@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.6.0] - 2026-06-18
+
+#### Added
+- **Model descriptions** under the download picker: size, speed/accuracy, and
+  whether each model is multilingual or English-only (`.en`).
+- **About tab links** to the project's GitHub and to the author's LinkedIn.
+
+#### Changed
+- **Taller summary-prompt editor** (min 300pt) so long prompts are easier to edit.
+
 ### [0.5.0] - 2026-06-18
 
 #### Added

@@ -36,6 +36,24 @@ struct SettingsView: View {
 		meetingLanguages.first { $0.code == code }?.name ?? code
 	}
 
+	/// Human-readable size / speed / accuracy guidance for a downloadable model.
+	/// `.en` variants are English-only and shouldn't be used for Ukrainian/auto.
+	private func modelInfo(_ model: String) -> String {
+		switch model {
+		case "tiny":      return "≈75 MB · fastest, lowest accuracy. Multilingual."
+		case "tiny.en":   return "≈75 MB · fastest, lowest accuracy. English only."
+		case "base":      return "≈142 MB · fast, basic accuracy. Multilingual. Good default."
+		case "base.en":   return "≈142 MB · fast, basic accuracy. English only."
+		case "small":     return "≈466 MB · good balance of speed and accuracy. Multilingual."
+		case "small.en":  return "≈466 MB · good balance of speed and accuracy. English only."
+		case "medium":    return "≈1.5 GB · high accuracy, slower. Multilingual."
+		case "medium.en": return "≈1.5 GB · high accuracy, slower. English only."
+		case "large-v3":  return "≈3.1 GB · best accuracy, slowest. Multilingual - best for Ukrainian."
+		case "large-v3-turbo": return "≈1.6 GB · near-large accuracy, much faster. Multilingual - great Ukrainian/speed balance."
+		default:          return "Whisper ggml model."
+		}
+	}
+
 	/// Whisper ggml models present in ~/models, as (display name, full path),
 	/// e.g. ("large-v3", "/Users/me/models/ggml-large-v3.bin").
 	private var localModels: [(name: String, path: String)] {
@@ -101,6 +119,9 @@ struct SettingsView: View {
 					}
 					.disabled(downloader.isDownloading)
 				}
+				Text(modelInfo(modelToDownload))
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
 				if downloader.isDownloading {
 					ProgressView(value: downloader.progress).progressViewStyle(.linear)
 					Text("\(downloader.message)  \(Int(downloader.progress * 100))%")
@@ -197,7 +218,7 @@ struct SettingsView: View {
 							get: { settings.currentPrompt() },
 							set: { settings.setCurrentPrompt($0) }))
 							.font(.system(.caption, design: .monospaced))
-							.frame(height: 150)
+							.frame(minHeight: 300)
 							.border(Color.gray.opacity(0.3))
 						Text("Each model can have its own prompt. {{transcript}} is replaced.")
 							.font(.caption).foregroundStyle(.secondary)
@@ -210,12 +231,29 @@ struct SettingsView: View {
 
 		Form {
 			Section("About") {
-				HStack {
-					Spacer()
-					Text("AI Meeting Notes \(Self.appVersion)")
+				VStack(spacing: 10) {
+					Text("AI Meeting Notes")
+						.font(.headline)
+					Text("Version \(Self.appVersion)")
 						.font(.caption).foregroundStyle(.secondary)
-					Spacer()
+					HStack(spacing: 18) {
+						Link(destination: URL(string: "https://github.com/servika/ai-meeting-notes")!) {
+							Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+						}
+						.help("Project on GitHub")
+						Link(destination: URL(string: "https://www.linkedin.com/in/serg-bataev/")!) {
+							Label("LinkedIn", systemImage: "person.crop.circle")
+						}
+						.help("Serg Bataev on LinkedIn")
+					}
+					.buttonStyle(.borderless)
+					.tint(brand)
+					.padding(.top, 4)
+					Text("Made by Serg Bataev")
+						.font(.caption2).foregroundStyle(.secondary)
 				}
+				.frame(maxWidth: .infinity)
+				.padding(.vertical, 8)
 			}
 		}
 		.formStyle(.grouped)
