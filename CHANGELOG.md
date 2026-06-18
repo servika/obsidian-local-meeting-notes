@@ -13,6 +13,23 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.2.0] - 2026-06-18
+
+#### Added
+- **Meeting-language picker** on the record panel for better transcription
+  quality; whisper is pinned to the chosen language instead of auto-detecting.
+- **Topic blocks** in the summary: *Topics discussed* now renders each topic as
+  an accent-barred block with a heading and 1-3 paragraphs/bullets.
+- **Total meeting duration** stored in the note frontmatter and shown in the
+  meetings list and meeting header.
+- **State-aware row icons** distinguishing recording, processing, and idle
+  meetings.
+
+#### Changed
+- Clicking **Record** now creates and selects a new meeting in the list
+  immediately, so it's no longer confused with a previously highlighted note.
+- Russian removed from the language options.
+
 ### [0.1.0] - 2026-06-18
 
 First release of the standalone macOS app.
