@@ -13,6 +13,17 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.5.0] - 2026-06-18
+
+#### Added
+- **Per-language model is now a dropdown** of the whisper models you've
+  downloaded (scanned from `~/models`), instead of typing a file path. A
+  not-downloaded path still shows, marked "(missing)".
+
+#### Changed
+- **Settings is now tabbed** - General, Transcription, Summary, and About -
+  instead of one long scrolling form.
+
 ### [0.4.2] - 2026-06-18
 
 #### Changed

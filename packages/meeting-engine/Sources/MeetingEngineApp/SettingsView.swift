@@ -36,7 +36,30 @@ struct SettingsView: View {
 		meetingLanguages.first { $0.code == code }?.name ?? code
 	}
 
+	/// Whisper ggml models present in ~/models, as (display name, full path),
+	/// e.g. ("large-v3", "/Users/me/models/ggml-large-v3.bin").
+	private var localModels: [(name: String, path: String)] {
+		let dir = ("~/models" as NSString).expandingTildeInPath
+		let files = (try? FileManager.default.contentsOfDirectory(atPath: dir)) ?? []
+		return files
+			.filter { $0.hasPrefix("ggml-") && $0.hasSuffix(".bin") }
+			.map { (name: String($0.dropFirst(5).dropLast(4)),
+				path: (dir as NSString).appendingPathComponent($0)) }
+			.sorted { $0.name < $1.name }
+	}
+
+	/// Dropdown options for a per-language model: the downloaded models, plus the
+	/// currently-stored path if it isn't among them (so a missing model still shows).
+	private func modelOptions(including current: String) -> [(name: String, path: String)] {
+		var opts = localModels
+		if !current.isEmpty, !opts.contains(where: { $0.path == current }) {
+			opts.insert((name: (current as NSString).lastPathComponent + " (missing)", path: current), at: 0)
+		}
+		return opts
+	}
+
 	var body: some View {
+		TabView {
 		Form {
 			Section("Storage (Obsidian vault)") {
 				HStack {
@@ -45,7 +68,11 @@ struct SettingsView: View {
 				}
 				TextField("Meetings subfolder", text: $settings.meetingsFolder)
 			}
+		}
+		.formStyle(.grouped)
+		.tabItem { Label("General", systemImage: "folder") }
 
+		Form {
 			Section("Transcription") {
 				HStack {
 					TextField("Default whisper model path", text: $settings.whisperModelPath)
@@ -84,20 +111,24 @@ struct SettingsView: View {
 			}
 
 			Section("Model per language (optional)") {
-				Text("Use a heavier model for specific languages - e.g. large-v3 for Ukrainian. Meetings in any language without an override use the default model above.")
+				Text("Pick a downloaded model per language - e.g. large-v3 for Ukrainian. Meetings in any language without an override use the default model above. Download models in the Transcription tab first.")
 					.font(.caption).foregroundStyle(.secondary)
 
 				ForEach(overrideLanguages, id: \.self) { lang in
+					let current = settings.modelByLanguage[lang] ?? ""
 					HStack {
 						Text(languageName(lang)).frame(width: 90, alignment: .leading)
-						TextField("model path", text: Binding(
-							get: { settings.modelByLanguage[lang] ?? "" },
+						Picker("", selection: Binding(
+							get: { current },
 							set: { v in
 								var m = settings.modelByLanguage
 								m[lang] = v
 								settings.modelByLanguage = m
-							}))
-						if modelFileExists(settings.modelByLanguage[lang] ?? "") {
+							})) {
+							ForEach(modelOptions(including: current), id: \.path) { Text($0.name).tag($0.path) }
+						}
+						.labelsHidden()
+						if modelFileExists(current) {
 							Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
 						} else {
 							Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -118,7 +149,11 @@ struct SettingsView: View {
 					.disabled(unsetLanguages.isEmpty)
 				}
 			}
+		}
+		.formStyle(.grouped)
+		.tabItem { Label("Transcription", systemImage: "waveform") }
 
+		Form {
 			Section("Summary & action items") {
 				Picker("Engine", selection: $settings.summaryEngine) {
 					Text("None").tag("none")
@@ -169,8 +204,12 @@ struct SettingsView: View {
 					}
 				}
 			}
+		}
+		.formStyle(.grouped)
+		.tabItem { Label("Summary", systemImage: "sparkles") }
 
-			Section {
+		Form {
+			Section("About") {
 				HStack {
 					Spacer()
 					Text("AI Meeting Notes \(Self.appVersion)")
@@ -180,6 +219,8 @@ struct SettingsView: View {
 			}
 		}
 		.formStyle(.grouped)
+		.tabItem { Label("About", systemImage: "info.circle") }
+		}
 		.tint(brand)
 		.frame(width: 720, height: 660)
 		.onAppear(perform: refreshOllama)
