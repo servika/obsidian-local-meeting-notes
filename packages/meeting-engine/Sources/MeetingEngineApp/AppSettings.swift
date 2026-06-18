@@ -86,12 +86,13 @@ final class AppSettings: ObservableObject {
 
 	Rules:
 	1. Output ONLY valid Markdown. No preamble, no explanation, no sign-off.
-	2. Use EXACTLY three sections, in this order: ## Short summary, ## Summary, ## Action items.
+	2. Use EXACTLY four sections, in this order: ## Short summary, ## Summary, ## Topics discussed, ## Action items.
 	3. Short summary = 1-2 sentences capturing the single most important outcome.
 	4. Summary = one or two short paragraphs stating who met, the main topics, key decisions, and the outcome.
-	5. Action items = a checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are zero action items, write "- None identified."
-	6. "You" = the user who recorded the transcript. "Them" = the other participant(s).
-	7. Do NOT add sections, headers, or content beyond what is specified above.
+	5. Topics discussed = for each distinct topic or block raised, a "### " subheading naming the topic, then 1-3 bullet points of what was said or decided about it.
+	6. Action items = a checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are zero action items, write "- None identified."
+	7. "You" = the user who recorded the transcript. "Them" = the other participant(s).
+	8. Do NOT add sections, headers, or content beyond what is specified above.
 
 	<|user|>
 	Transcript:
@@ -112,6 +113,9 @@ final class AppSettings: ObservableObject {
 
 	## Summary
 	One or two short paragraphs: who met, the main topics, key decisions, and the outcome.
+
+	## Topics discussed
+	For each distinct topic or block raised, a "### " subheading naming the topic, then 1-3 bullet points of what was said or decided about it.
 
 	## Action items
 	- [ ] <task> - <owner> (use "Owner TBD" if unassigned). If there are none, write "- None identified."

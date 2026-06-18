@@ -36,7 +36,7 @@ struct SettingsView: View {
 					Text("No model at that path. Download one below.")
 						.font(.caption).foregroundStyle(.orange)
 				}
-				TextField("Language (auto, en, uk, de, …)", text: $settings.language)
+				TextField("Language (auto, en, uk, de, ua, …)", text: $settings.language)
 				Text("Auto-detect / non-English needs a multilingual model (not the .en variant).")
 					.font(.caption).foregroundStyle(.secondary)
 

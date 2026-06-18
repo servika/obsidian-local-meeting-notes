@@ -26,8 +26,10 @@ public enum Transcriber {
 		language: String = "auto",
 		speaker: String,
 		progress: ((Double) -> Void)? = nil,
+		cancel: CancelToken? = nil,
 		log: (String) -> Void
 	) throws -> [TranscriptSegment] {
+		if cancel?.isCancelled == true { throw CancelledError() }
 		let modelPath = (model as NSString).expandingTildeInPath
 		guard FileManager.default.fileExists(atPath: modelPath) else {
 			throw EngineError(message: "whisper model not found: \(modelPath)")
@@ -49,7 +51,7 @@ public enum Transcriber {
 		log("transcribing \(speaker) track…")
 		try runWhisper(resolveBinary(whisperBin),
 			["-m", modelPath, "-f", wav16, "-l", language, "-oj", "-pp", "-of", base],
-			progress: progress)
+			cancel: cancel, progress: progress)
 
 		let jsonPath = base + ".json"
 		defer { try? FileManager.default.removeItem(atPath: jsonPath) }
@@ -145,7 +147,7 @@ func runProcess(_ command: String, _ args: [String]) throws {
 
 /// Run whisper-cli, streaming its stderr to report progress (0…1) parsed from
 /// its `progress = NN%` lines. stdout is discarded so it can't fill the pipe.
-func runWhisper(_ command: String, _ args: [String], progress: ((Double) -> Void)?) throws {
+func runWhisper(_ command: String, _ args: [String], cancel: CancelToken?, progress: ((Double) -> Void)?) throws {
 	let proc = Process()
 	if command.hasPrefix("/") {
 		proc.executableURL = URL(fileURLWithPath: command)
@@ -168,14 +170,18 @@ func runWhisper(_ command: String, _ args: [String], progress: ((Double) -> Void
 			progress?(p)
 		}
 	}
+	cancel?.register(proc)
 	do {
 		try proc.run()
 	} catch {
 		handle.readabilityHandler = nil
+		cancel?.clearProcess()
 		throw EngineError(message: "failed to launch \(command): \(error.localizedDescription)")
 	}
 	proc.waitUntilExit()
 	handle.readabilityHandler = nil
+	cancel?.clearProcess()
+	if cancel?.isCancelled == true { throw CancelledError() }
 	if proc.terminationStatus != 0 {
 		lock.lock(); let s = String(data: errBuffer, encoding: .utf8) ?? ""; lock.unlock()
 		throw EngineError(message: "\(command) exited \(proc.terminationStatus): \(String(s.suffix(400)))")

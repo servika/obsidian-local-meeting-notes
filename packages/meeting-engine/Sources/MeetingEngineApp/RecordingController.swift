@@ -16,6 +16,7 @@ final class RecordingController: ObservableObject {
 	private var stamp = ""
 	private var procTimer: Timer?
 	private var procStart: Date?
+	private var cancelToken: CancelToken?
 	private let settings: AppSettings
 	private let store: MeetingStore
 
@@ -25,6 +26,13 @@ final class RecordingController: ObservableObject {
 	}
 
 	func toggle() { isRecording ? stop() : start() }
+
+	/// Stop an in-progress transcription/summarization. The recording's audio is
+	/// kept, so the meeting can be re-generated later.
+	func cancelProcessing() {
+		cancelToken?.cancel()
+		status = "Stopping…"
+	}
 
 	func start() {
 		guard let meetingsDir = settings.meetingsDirURL else {
@@ -56,6 +64,8 @@ final class RecordingController: ObservableObject {
 		status = "Finishing recording…"
 		startElapsedTimer()
 		let stamp = self.stamp
+		let token = CancelToken()
+		cancelToken = token
 		guard let meetingsDir = settings.meetingsDirURL else { busy = false; stopElapsedTimer(); return }
 
 		DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -65,12 +75,18 @@ final class RecordingController: ObservableObject {
 
 			let title = "Meeting \(stamp)"
 			let audioBase = "recordings/Meeting \(stamp)"
+			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path)
+				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, cancel: token)
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, summary: summary, transcript: transcript)
-				let noteURL = meetingsDir.appendingPathComponent("\(title).md")
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)")
+			} catch is CancelledError {
+				// Keep the recording as a re-generatable note.
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, summary: "",
+					transcript: "_Transcription stopped. Open this meeting and click Re-generate to process it._")
+				try? note.write(to: noteURL, atomically: true, encoding: .utf8)
+				self.finish(status: "Stopped - re-generate when ready")
 			} catch {
 				self.finish(status: "Failed: \(error)")
 			}
@@ -85,6 +101,8 @@ final class RecordingController: ObservableObject {
 		progress = 0
 		status = "Re-generating…"
 		startElapsedTimer()
+		let token = CancelToken()
+		cancelToken = token
 		guard let meetingsDir = settings.meetingsDirURL else { busy = false; stopElapsedTimer(); return }
 		let noteURL = meeting.url
 		let title = meeting.title
@@ -102,10 +120,12 @@ final class RecordingController: ObservableObject {
 				return
 			}
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav)
+				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, cancel: token)
 				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "✅ Re-generated \(title)")
+			} catch is CancelledError {
+				self.finish(status: "Stopped. The existing note is unchanged.")
 			} catch {
 				self.finish(status: "Failed: \(error)")
 			}
@@ -116,18 +136,19 @@ final class RecordingController: ObservableObject {
 
 	/// Transcribe both tracks (with weighted progress) and summarize. Runs on a
 	/// background queue; updates `progress`/`status` on the main queue.
-	private func transcribeAndSummarize(systemWav: String, micWav: String) throws -> (transcript: String, summary: String) {
+	private func transcribeAndSummarize(systemWav: String, micWav: String, cancel: CancelToken) throws -> (transcript: String, summary: String) {
 		let model = (settings.whisperModelPath as NSString).expandingTildeInPath
 		let lang = settings.language.isEmpty ? "auto" : settings.language
 		let setProgress: (Double) -> Void = { p in DispatchQueue.main.async { self.progress = p } }
 
 		DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
 		let them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, speaker: "Them",
-			progress: { setProgress(0.05 + $0 * 0.45) }, log: { _ in })
+			progress: { setProgress(0.05 + $0 * 0.45) }, cancel: cancel, log: { _ in })
 		let you = try Transcriber.transcribe(wavPath: micWav, model: model, language: lang, speaker: "You",
-			progress: { setProgress(0.50 + $0 * 0.40) }, log: { _ in })
+			progress: { setProgress(0.50 + $0 * 0.40) }, cancel: cancel, log: { _ in })
 		let transcript = Transcriber.diarizedMarkdown(them + you)
 
+		if cancel.isCancelled { throw CancelledError() }
 		var summary = ""
 		if let engine = Self.engine(from: settings) {
 			DispatchQueue.main.async { self.status = "Summarizing…"; self.progress = 0.92 }
@@ -141,6 +162,7 @@ final class RecordingController: ObservableObject {
 		DispatchQueue.main.async {
 			self.busy = false
 			self.progress = 1
+			self.cancelToken = nil
 			self.stopElapsedTimer()
 			self.status = status
 			self.store.reload(folder: self.settings.meetingsDirURL)

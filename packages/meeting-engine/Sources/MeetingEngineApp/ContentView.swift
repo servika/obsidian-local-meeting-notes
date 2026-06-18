@@ -39,7 +39,8 @@ struct ContentView: View {
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
 					onRegenerate: { controller.regenerate(meeting) },
-					onDelete: { store.delete(meeting); selection = nil })
+					onDelete: { store.delete(meeting); selection = nil },
+					onCancel: { controller.cancelProcessing() })
 			} else {
 				ContentUnavailableView("No meeting selected", systemImage: "waveform",
 					description: Text("Record a meeting, or pick one from the list."))
@@ -89,6 +90,8 @@ struct RecordPanel: View {
 					Text(controller.elapsed)
 				}
 				.font(.caption).foregroundStyle(.secondary)
+				Button("Stop processing", role: .destructive) { controller.cancelProcessing() }
+					.controlSize(.small)
 			} else {
 				LevelBar(label: "System", level: controller.systemLevel)
 				LevelBar(label: "Mic", level: controller.micLevel)
@@ -128,6 +131,7 @@ struct MeetingDetail: View {
 	let onRename: (String) -> Void
 	let onRegenerate: () -> Void
 	let onDelete: () -> Void
+	let onCancel: () -> Void
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
 	@State private var copied = false
@@ -166,9 +170,13 @@ struct MeetingDetail: View {
 			}
 
 			if busy {
-				VStack(alignment: .leading, spacing: 4) {
-					ProgressView(value: progress).progressViewStyle(.linear)
-					Text(status).font(.caption).foregroundStyle(.secondary)
+				HStack(spacing: 12) {
+					VStack(alignment: .leading, spacing: 4) {
+						ProgressView(value: progress).progressViewStyle(.linear)
+						Text(status).font(.caption).foregroundStyle(.secondary)
+					}
+					Button("Stop", role: .destructive) { onCancel() }
+						.controlSize(.small)
 				}
 				.padding(.horizontal, 20).padding(.bottom, 10)
 			}
@@ -247,6 +255,7 @@ struct NoteView: View {
 		switch title.lowercased() {
 		case "short summary": return "text.quote"
 		case "summary": return "text.alignleft"
+		case "topics discussed", "topics", "discussion": return "bubble.left.and.bubble.right"
 		case "action items": return "checklist"
 		case "transcript": return "waveform"
 		default: return "doc.text"
@@ -265,7 +274,29 @@ struct NoteView: View {
 				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in transcriptLine(line) }
 			}
 		} else {
-			inline(sec.lines.joined(separator: "\n"))
+			richText(sec.lines)
+		}
+	}
+
+	/// Renders paragraphs, `### ` sub-headings (e.g. topic blocks), and `- ` bullets.
+	@ViewBuilder
+	private func richText(_ lines: [String]) -> some View {
+		VStack(alignment: .leading, spacing: 6) {
+			ForEach(Array(lines.enumerated()), id: \.offset) { _, raw in
+				let line = raw.trimmingCharacters(in: .whitespaces)
+				if line.hasPrefix("### ") {
+					Text(line.dropFirst(4))
+						.font(.subheadline.weight(.semibold))
+						.padding(.top, 4)
+				} else if line.hasPrefix("- ") {
+					HStack(alignment: .firstTextBaseline, spacing: 8) {
+						Text("•").foregroundStyle(.secondary)
+						inline(String(line.dropFirst(2)))
+					}
+				} else if !line.isEmpty {
+					inline(line)
+				}
+			}
 		}
 	}
 

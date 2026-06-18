@@ -18,6 +18,9 @@ public enum Summarizer {
 	## Summary
 	One or two short paragraphs: who met, the main topics, key decisions, and the outcome.
 
+	## Topics discussed
+	For each distinct topic or block raised, a "### " subheading naming the topic, then 1-3 bullet points of what was said or decided about it.
+
 	## Action items
 	- [ ] Each task, with the owner if mentioned. If there are none, write "- None identified."
 
