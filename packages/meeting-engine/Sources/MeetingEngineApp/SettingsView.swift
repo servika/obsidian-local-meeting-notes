@@ -86,6 +86,12 @@ struct SettingsView: View {
 				}
 				TextField("Meetings subfolder", text: $settings.meetingsFolder)
 			}
+
+			Section("Recording") {
+				Toggle("Suggest recording when a meeting is detected", isOn: $settings.suggestOnMeetingDetected)
+				Text("Shows a \"Start recording?\" nudge when another app (Zoom, Teams, Meet, FaceTime…) starts using your microphone. Never records on its own.")
+					.font(.caption).foregroundStyle(.secondary)
+			}
 		}
 		.formStyle(.grouped)
 		.tabItem { Label("General", systemImage: "folder") }

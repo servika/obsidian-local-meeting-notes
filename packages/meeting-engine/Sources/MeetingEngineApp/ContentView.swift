@@ -137,8 +137,26 @@ struct MeetingRow: View {
 struct RecordPanel: View {
 	@EnvironmentObject var controller: RecordingController
 	@EnvironmentObject var settings: AppSettings
+	@EnvironmentObject var detector: MeetingDetector
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
+			if detector.suggestRecording && !controller.isRecording && !controller.busy {
+				HStack(spacing: 8) {
+					Image(systemName: "dot.radiowaves.left.and.right").foregroundStyle(brand)
+					VStack(alignment: .leading, spacing: 1) {
+						Text("Meeting detected").font(.caption.weight(.semibold))
+						Text("Another app is using your mic.").font(.caption2).foregroundStyle(.secondary)
+					}
+					Spacer(minLength: 4)
+					Button("Record") { detector.clear(); controller.start() }
+						.controlSize(.small).buttonStyle(.borderedProminent)
+					Button { detector.dismiss() } label: { Image(systemName: "xmark") }
+						.controlSize(.small).buttonStyle(.borderless)
+				}
+				.padding(10)
+				.background(RoundedRectangle(cornerRadius: 10).fill(brand.opacity(0.1)))
+				.transition(.opacity)
+			}
 			HStack(spacing: 6) {
 				Image(systemName: "globe").foregroundStyle(.secondary)
 				Picker("Language", selection: $settings.language) {
@@ -177,6 +195,12 @@ struct RecordPanel: View {
 			Text(controller.status)
 				.font(.caption).foregroundStyle(.secondary)
 				.lineLimit(3).fixedSize(horizontal: false, vertical: true)
+		}
+		.animation(.default, value: detector.suggestRecording)
+		.onChange(of: controller.isRecording) {
+			// Once recording, drop the nudge for this call so it doesn't reappear
+			// after the recording stops while the meeting is still going.
+			if controller.isRecording { detector.dismiss() }
 		}
 	}
 }

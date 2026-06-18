@@ -10,10 +10,6 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Distribution & packaging
 
-- ~~**Bundle whisper.cpp into the app.**~~ ✅ Shipped in 0.7.0 - a static, native
-  `whisper-cli` is built by `scripts/build-whisper.sh` and bundled in
-  `Contents/Resources/`; no `brew install whisper-cpp` needed. (A default model
-  is still downloaded on first use via Settings → Transcription.)
 - **Developer ID signing + notarization + DMG.**
   Scripts already exist (`scripts/build-app.sh`, `scripts/make-dmg.sh`,
   `scripts/app.entitlements`) and are env-var gated on `DEVELOPER_ID_APP` /
@@ -21,15 +17,9 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
   ($99/yr). Until then the app is ad-hoc signed (Gatekeeper warning on other
   Macs). Mac App Store is ruled out - the sandbox forbids process-tap
   system-audio capture and shelling out to `whisper-cli`.
-- ~~**Swift CI.**~~ ✅ Done - `build.yml` now has a `macos-app` job that builds
-  the Swift package, runs `build-app.sh` (exercising the whisper bundling), and
-  verifies the signed `.app` bundle. whisper.cpp is cached between runs.
 
 ## Summary quality
 
-- ~~**Bake a tuned Llama prompt.**~~ ✅ Shipped in 0.7.1 - `AppSettings.llamaPrompt`
-  is now a proper tuned plain-instruction prompt (four sections, You/Them roles,
-  no-preamble/no-invention rules).
 - **Add a tuned Qwen default prompt.**
   `qwen2.5:14b` currently falls back to the generic prompt. Add a
   `qwen`-matched default in `AppSettings.defaultPrompt(for:)` and run an A/B
@@ -43,8 +33,12 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 ## Capture & product (the "Notion-grade" roadmap)
 
 - **Auto-start recording.**
-  Detect meetings via Calendar (EventKit) and start/stop capture
-  automatically.
+  - ✅ Shipped in 0.8.0: **suggest** recording when a meeting is detected (the
+    mic goes in-use by another app, via Core Audio). A nudge appears; the user
+    decides - it never records on its own.
+  - Future: optional Calendar (EventKit) detection to nudge at a scheduled
+    event's start and auto-fill the title, and a fully-automatic start/stop
+    mode for users who want it.
 - **localhost API + Obsidian plugin integration.**
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.

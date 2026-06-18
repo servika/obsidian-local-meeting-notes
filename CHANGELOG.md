@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.8.0] - 2026-06-18
+
+#### Added
+- **"Meeting detected" suggestion.** When another app (Zoom, Teams, Google
+  Meet, FaceTime…) starts using your microphone, the record panel shows a
+  gentle "Start recording?" nudge with Record / dismiss buttons. Detection uses
+  Core Audio (`kAudioDevicePropertyDeviceIsRunningSomewhere`) - no new
+  permissions - and **never records on its own**. Toggle in Settings → General
+  (on by default).
+
 ### [0.7.1] - 2026-06-18
 
 #### Changed
