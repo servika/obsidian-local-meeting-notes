@@ -237,6 +237,10 @@ struct SettingsView: View {
 					Text("Version \(Self.appVersion)")
 						.font(.caption).foregroundStyle(.secondary)
 					HStack(spacing: 18) {
+						Link(destination: URL(string: "https://sergb.com/")!) {
+							Label("Website", systemImage: "globe")
+						}
+						.help("sergb.com")
 						Link(destination: URL(string: "https://github.com/servika/ai-meeting-notes")!) {
 							Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
 						}

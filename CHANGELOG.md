@@ -13,6 +13,11 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.6.1] - 2026-06-18
+
+#### Added
+- **Website link** (sergb.com) in the About tab, alongside GitHub and LinkedIn.
+
 ### [0.6.0] - 2026-06-18
 
 #### Added
