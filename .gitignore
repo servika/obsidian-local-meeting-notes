@@ -8,3 +8,4 @@ data.json
 # Swift build output (meeting-engine)
 .build/
 .swiftpm/
+Screenshot*.png

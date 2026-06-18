@@ -183,16 +183,23 @@ struct NoteView: View {
 	let markdown: String
 
 	var body: some View {
-		VStack(alignment: .leading, spacing: 22) {
+		VStack(alignment: .leading, spacing: 18) {
 			ForEach(Array(sections().enumerated()), id: \.offset) { _, sec in
+				let isCard = sec.title.lowercased() != "transcript"
 				VStack(alignment: .leading, spacing: 10) {
 					Label(sec.title, systemImage: icon(for: sec.title))
 						.font(.headline)
 						.foregroundStyle(brand)
 					body(for: sec)
 				}
+				.padding(isCard ? 16 : 0)
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.background {
+					if isCard { RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.07)) }
+				}
 			}
 		}
+		.frame(maxWidth: 780, alignment: .leading)
 		.textSelection(.enabled)
 	}
 
@@ -215,7 +222,7 @@ struct NoteView: View {
 				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in actionItem(line) }
 			}
 		} else if title == "transcript" {
-			VStack(alignment: .leading, spacing: 10) {
+			VStack(alignment: .leading, spacing: 8) {
 				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in transcriptLine(line) }
 			}
 		} else {
@@ -248,9 +255,11 @@ struct NoteView: View {
 		if let (speaker, rest) = speakerSplit(line) {
 			HStack(alignment: .top, spacing: 10) {
 				Text(speaker)
-					.font(.caption.weight(.bold))
-					.foregroundStyle(speaker == "You" ? brand : .secondary)
-					.frame(width: 46, alignment: .leading)
+					.font(.caption2.weight(.semibold))
+					.foregroundStyle(.white)
+					.padding(.horizontal, 7).padding(.vertical, 2)
+					.background(speaker == "You" ? brand : Color.gray, in: Capsule())
+					.frame(width: 54, alignment: .leading)
 				inline(rest).frame(maxWidth: .infinity, alignment: .leading)
 			}
 		} else {
