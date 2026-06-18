@@ -30,20 +30,11 @@ func noteIsOutdated(_ noteVersion: String?) -> Bool {
 	return semverCompare(v, noteQualityBaseline) < 0
 }
 
-/// Languages offered in the record-panel picker (Russian intentionally omitted).
+/// Languages offered in the record-panel picker.
 let meetingLanguages: [(code: String, name: String)] = [
 	("auto", "Auto-detect"),
 	("en", "English"),
 	("uk", "Ukrainian"),
-	("de", "German"),
-	("es", "Spanish"),
-	("fr", "French"),
-	("it", "Italian"),
-	("pt", "Portuguese"),
-	("pl", "Polish"),
-	("nl", "Dutch"),
-	("ja", "Japanese"),
-	("zh", "Chinese"),
 ]
 
 func durationLabel(_ seconds: Int) -> String {

@@ -13,6 +13,12 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.4.2] - 2026-06-18
+
+#### Changed
+- Language picker limited to **Auto-detect, English, and Ukrainian** (also
+  narrows the per-language model override options in Settings to match).
+
 ### [0.4.1] - 2026-06-18
 
 #### Fixed
