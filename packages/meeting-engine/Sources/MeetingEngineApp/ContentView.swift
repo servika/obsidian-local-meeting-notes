@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 let brand = Color(red: 0.36, green: 0.30, blue: 0.92)
 
@@ -129,6 +130,8 @@ struct MeetingDetail: View {
 	let onDelete: () -> Void
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
+	@State private var showMarkdown = false
+	@State private var copied = false
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
@@ -156,6 +159,26 @@ struct MeetingDetail: View {
 				Text("This removes the note and its audio recordings. This can't be undone.")
 			}
 
+			HStack(spacing: 10) {
+				Picker("", selection: $showMarkdown) {
+					Text("Reading").tag(false)
+					Text("Markdown").tag(true)
+				}
+				.pickerStyle(.segmented)
+				.labelsHidden()
+				.frame(width: 200)
+				Spacer()
+				Button {
+					NSPasteboard.general.clearContents()
+					NSPasteboard.general.setString(content, forType: .string)
+					copied = true
+					DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+				} label: {
+					Label(copied ? "Copied" : "Copy Markdown", systemImage: copied ? "checkmark" : "doc.on.doc")
+				}
+			}
+			.padding(.horizontal, 20).padding(.bottom, 10)
+
 			if busy {
 				VStack(alignment: .leading, spacing: 4) {
 					ProgressView(value: progress).progressViewStyle(.linear)
@@ -167,9 +190,17 @@ struct MeetingDetail: View {
 			Divider()
 
 			ScrollView {
-				NoteView(markdown: content)
-					.frame(maxWidth: .infinity, alignment: .leading)
-					.padding(20)
+				if showMarkdown {
+					Text(content)
+						.font(.system(.body, design: .monospaced))
+						.textSelection(.enabled)
+						.frame(maxWidth: .infinity, alignment: .leading)
+						.padding(20)
+				} else {
+					NoteView(markdown: content)
+						.frame(maxWidth: .infinity, alignment: .leading)
+						.padding(20)
+				}
 			}
 		}
 		.onAppear { titleField = meeting.title }
