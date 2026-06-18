@@ -130,7 +130,6 @@ struct MeetingDetail: View {
 	let onDelete: () -> Void
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
-	@State private var showMarkdown = false
 	@State private var copied = false
 
 	var body: some View {
@@ -141,6 +140,13 @@ struct MeetingDetail: View {
 					.font(.title2.weight(.semibold))
 					.onSubmit { onRename(titleField) }
 				Spacer()
+				Button {
+					NSPasteboard.general.clearContents()
+					NSPasteboard.general.setString(content, forType: .string)
+					copied = true
+					DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+				} label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
+					.help("Copy full note as Markdown")
 				Button { onRename(titleField) } label: { Image(systemName: "pencil") }
 					.help("Rename")
 					.disabled(titleField.trimmingCharacters(in: .whitespaces).isEmpty || titleField == meeting.title)
@@ -159,26 +165,6 @@ struct MeetingDetail: View {
 				Text("This removes the note and its audio recordings. This can't be undone.")
 			}
 
-			HStack(spacing: 10) {
-				Picker("", selection: $showMarkdown) {
-					Text("Reading").tag(false)
-					Text("Markdown").tag(true)
-				}
-				.pickerStyle(.segmented)
-				.labelsHidden()
-				.frame(width: 200)
-				Spacer()
-				Button {
-					NSPasteboard.general.clearContents()
-					NSPasteboard.general.setString(content, forType: .string)
-					copied = true
-					DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
-				} label: {
-					Label(copied ? "Copied" : "Copy Markdown", systemImage: copied ? "checkmark" : "doc.on.doc")
-				}
-			}
-			.padding(.horizontal, 20).padding(.bottom, 10)
-
 			if busy {
 				VStack(alignment: .leading, spacing: 4) {
 					ProgressView(value: progress).progressViewStyle(.linear)
@@ -189,19 +175,28 @@ struct MeetingDetail: View {
 
 			Divider()
 
-			ScrollView {
-				if showMarkdown {
+			TabView {
+				ScrollView {
+					NoteView(markdown: content, only: .summary)
+						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
+				}
+				.tabItem { Label("Summary", systemImage: "text.alignleft") }
+
+				ScrollView {
+					NoteView(markdown: content, only: .transcript)
+						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
+				}
+				.tabItem { Label("Transcript", systemImage: "waveform") }
+
+				ScrollView {
 					Text(content)
 						.font(.system(.body, design: .monospaced))
 						.textSelection(.enabled)
-						.frame(maxWidth: .infinity, alignment: .leading)
-						.padding(20)
-				} else {
-					NoteView(markdown: content)
-						.frame(maxWidth: .infinity, alignment: .leading)
-						.padding(20)
+						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
 				}
+				.tabItem { Label("Markdown", systemImage: "curlybraces") }
 			}
+			.padding(8)
 		}
 		.onAppear { titleField = meeting.title }
 		.onChange(of: meeting.id) { titleField = meeting.title }
@@ -211,11 +206,23 @@ struct MeetingDetail: View {
 /// Renders a meeting note's markdown as styled sections (Summary, Action items
 /// as checkboxes, Transcript with speaker labels).
 struct NoteView: View {
+	enum Filter { case all, summary, transcript }
 	let markdown: String
+	var only: Filter = .all
+
+	private var visibleSections: [Section] {
+		sections().filter { sec in
+			switch only {
+			case .all: return true
+			case .summary: return sec.title.lowercased() != "transcript"
+			case .transcript: return sec.title.lowercased() == "transcript"
+			}
+		}
+	}
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 18) {
-			ForEach(Array(sections().enumerated()), id: \.offset) { _, sec in
+			ForEach(Array(visibleSections.enumerated()), id: \.offset) { _, sec in
 				let isCard = sec.title.lowercased() != "transcript"
 				VStack(alignment: .leading, spacing: 10) {
 					Label(sec.title, systemImage: icon(for: sec.title))
@@ -238,6 +245,7 @@ struct NoteView: View {
 
 	private func icon(for title: String) -> String {
 		switch title.lowercased() {
+		case "short summary": return "text.quote"
 		case "summary": return "text.alignleft"
 		case "action items": return "checklist"
 		case "transcript": return "waveform"

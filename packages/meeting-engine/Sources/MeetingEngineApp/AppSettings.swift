@@ -86,11 +86,12 @@ final class AppSettings: ObservableObject {
 
 	Rules:
 	1. Output ONLY valid Markdown. No preamble, no explanation, no sign-off.
-	2. Use EXACTLY two sections: ## Summary, then ## Action items.
-	3. Summary = one paragraph, 3-5 sentences. State who met, the main topic, key decisions, and outcome.
-	4. Action items = a checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are zero action items, write "- None identified."
-	5. "You" = the user who recorded the transcript. "Them" = the other participant(s).
-	6. Do NOT add sections, headers, or content beyond what is specified above.
+	2. Use EXACTLY three sections, in this order: ## Short summary, ## Summary, ## Action items.
+	3. Short summary = 1-2 sentences capturing the single most important outcome.
+	4. Summary = one or two short paragraphs stating who met, the main topics, key decisions, and the outcome.
+	5. Action items = a checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are zero action items, write "- None identified."
+	6. "You" = the user who recorded the transcript. "Them" = the other participant(s).
+	7. Do NOT add sections, headers, or content beyond what is specified above.
 
 	<|user|>
 	Transcript:
@@ -104,10 +105,13 @@ final class AppSettings: ObservableObject {
 	/// Default for Llama-family models (plain instruction style). Replace with
 	/// your tuned version if you have one.
 	static let llamaPrompt = """
-	You are an expert meeting-notes assistant. From the transcript below (lines are labeled You/Them), produce clean Markdown with EXACTLY these two sections and nothing else.
+	You are an expert meeting-notes assistant. From the transcript below (lines are labeled You/Them), produce clean Markdown with EXACTLY these three sections, in this order, and nothing else.
+
+	## Short summary
+	One or two sentences with the single most important outcome.
 
 	## Summary
-	One paragraph, 3-5 sentences: who met, the main topic, key decisions, and the outcome.
+	One or two short paragraphs: who met, the main topics, key decisions, and the outcome.
 
 	## Action items
 	- [ ] <task> - <owner> (use "Owner TBD" if unassigned). If there are none, write "- None identified."
