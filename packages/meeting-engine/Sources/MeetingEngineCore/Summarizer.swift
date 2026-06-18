@@ -46,7 +46,14 @@ public enum Summarizer {
 		guard !model.isEmpty else { throw SummaryError("no Ollama model set") }
 		let endpoint = url.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/generate"
 		guard let u = URL(string: endpoint) else { throw SummaryError("bad Ollama URL: \(url)") }
-		let body: [String: Any] = ["model": model, "prompt": prompt, "stream": false]
+		// temperature 0 → deterministic output, so the model reliably emits every
+		// required section instead of occasionally dropping one.
+		let body: [String: Any] = [
+			"model": model,
+			"prompt": prompt,
+			"stream": false,
+			"options": ["temperature": 0],
+		]
 		let data = try post(u, headers: ["Content-Type": "application/json"], json: body)
 		guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
 			throw SummaryError("unexpected Ollama response")

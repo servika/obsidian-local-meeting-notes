@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.4.1] - 2026-06-18
+
+#### Fixed
+- **Missing summary sections** (e.g. *Topics discussed* not appearing): Ollama
+  summarization now runs at `temperature: 0`, so the model deterministically
+  emits every required section instead of occasionally dropping one.
+
 ### [0.4.0] - 2026-06-18
 
 #### Added
