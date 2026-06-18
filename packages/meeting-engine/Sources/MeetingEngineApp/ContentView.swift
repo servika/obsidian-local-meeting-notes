@@ -48,6 +48,9 @@ struct ContentView: View {
 		}
 		.tint(brand)
 		.onAppear { store.reload(folder: settings.meetingsDirURL) }
+		.onChange(of: controller.justCreatedID) {
+			if let id = controller.justCreatedID { selection = id }
+		}
 	}
 }
 

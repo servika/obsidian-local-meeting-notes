@@ -11,6 +11,8 @@ final class RecordingController: ObservableObject {
 	@Published var micLevel: Float = 0
 	@Published var progress: Double = 0
 	@Published var elapsed: String = ""
+	/// Set when a new recording's note is created, so the UI can select it.
+	@Published var justCreatedID: String?
 
 	private var recorder: MeetingRecorder?
 	private var stamp = ""
@@ -51,6 +53,15 @@ final class RecordingController: ObservableObject {
 			recorder = r
 			isRecording = true
 			status = "Recording… click Stop when the meeting ends."
+			// Show the new meeting in the list immediately (and select it), so it's
+			// not confused with whatever was previously highlighted.
+			let title = "Meeting \(stamp)"
+			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
+			let placeholder = Self.buildNote(title: title, date: stamp, audioBase: "recordings/Meeting \(stamp)",
+				summary: "", transcript: "_Recording in progress…_")
+			try? placeholder.write(to: noteURL, atomically: true, encoding: .utf8)
+			store.reload(folder: meetingsDir)
+			justCreatedID = noteURL.path
 		} catch {
 			status = "Couldn't start: \(error)"
 		}

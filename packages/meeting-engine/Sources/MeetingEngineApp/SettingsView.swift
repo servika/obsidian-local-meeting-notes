@@ -8,6 +8,10 @@ struct SettingsView: View {
 	@State private var ollamaModels: [String] = []
 	@State private var modelToDownload = "base"
 
+	static var appVersion: String {
+		Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+	}
+
 	private var modelExists: Bool {
 		let p = (settings.whisperModelPath as NSString).expandingTildeInPath
 		return !p.isEmpty && FileManager.default.fileExists(atPath: p)
@@ -108,6 +112,15 @@ struct SettingsView: View {
 						Text("Each model can have its own prompt. {{transcript}} is replaced.")
 							.font(.caption).foregroundStyle(.secondary)
 					}
+				}
+			}
+
+			Section {
+				HStack {
+					Spacer()
+					Text("AI Meeting Notes \(Self.appVersion)")
+						.font(.caption).foregroundStyle(.secondary)
+					Spacer()
 				}
 			}
 		}

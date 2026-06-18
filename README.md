@@ -6,9 +6,32 @@
 
 🌐 **Website:** https://servika.github.io/ai-meeting-notes/
 
-Most Obsidian transcription plugins either send your audio to a cloud API, capture **only your microphone** (missing everyone else on the call), or require you to stand up a separate transcription server. AI Meeting Notes does none of that: it mixes your mic with system audio in-process, resamples in the browser (no `ffmpeg`), and shells out to a local `whisper.cpp` binary.
+This repo offers **two ways** to capture, transcribe, and summarize meetings entirely on your Mac:
+
+- 🖥️ **macOS app** (`packages/meeting-engine`) - **recommended**. Zero-setup capture of system audio + your mic (no BlackHole), a meetings library, AI summaries, and a tabbed review UI.
+- 🧩 **Obsidian plugin** (`packages/ai-meeting-notes`) - records and transcribes inside your vault (uses a BlackHole loopback for system audio).
+
+Both are local-first: transcription runs on your machine via [whisper.cpp](https://github.com/ggerganov/whisper.cpp); summaries can use a local [Ollama](https://ollama.com) model (or, optionally, the Claude API).
 
 ---
+
+## 🖥️ macOS app (recommended)
+
+Zero-setup system-audio + microphone capture via Core Audio process taps (no BlackHole), local transcription with **automatic language detection**, **"You vs. Them" diarization**, AI summaries (short summary, summary, topics discussed, action items), and a **meetings library** that writes notes into your Obsidian vault. Record/stop, re-generate, rename, delete, and copy-as-Markdown from the UI.
+
+```bash
+cd packages/meeting-engine
+./scripts/build-app.sh
+open ".build/AI Meeting Notes.app"
+```
+
+Full setup and details: **[packages/meeting-engine/README.md](packages/meeting-engine/README.md)** · live site: **https://servika.github.io/ai-meeting-notes/**
+
+---
+
+# Obsidian plugin
+
+The rest of this README covers the Obsidian plugin.
 
 ## Why this plugin
 

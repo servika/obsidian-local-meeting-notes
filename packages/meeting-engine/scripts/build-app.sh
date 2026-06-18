@@ -10,6 +10,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+VERSION="$(cat VERSION 2>/dev/null || echo 0.0.0)"
+
 swift build -c release --product MeetingEngineApp
 BIN="$(swift build -c release --show-bin-path)/MeetingEngineApp"
 APP=".build/AI Meeting Notes.app"
@@ -36,8 +38,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 	<key>CFBundleIdentifier</key><string>com.servika.meeting-engine</string>
 	<key>CFBundleExecutable</key><string>MeetingEngineApp</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
-	<key>CFBundleVersion</key><string>0.1.0</string>
-	<key>CFBundleShortVersionString</key><string>0.1.0</string>
+	<key>CFBundleVersion</key><string>${VERSION}</string>
+	<key>CFBundleShortVersionString</key><string>${VERSION}</string>
 	<key>LSMinimumSystemVersion</key><string>14.4</string>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 	<key>NSHighResolutionCapable</key><true/>

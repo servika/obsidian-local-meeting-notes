@@ -19,8 +19,9 @@ cd "$(dirname "$0")/.."
 
 ./scripts/build-app.sh
 
+VERSION="$(cat VERSION 2>/dev/null || echo 0.0.0)"
 APP=".build/AI Meeting Notes.app"
-DMG=".build/AI Meeting Notes.dmg"
+DMG=".build/AI Meeting Notes ${VERSION}.dmg"
 STAGING=".build/dmg-staging"
 VOL="AI Meeting Notes"
 
