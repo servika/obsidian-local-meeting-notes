@@ -112,6 +112,7 @@ struct SettingsView: View {
 			}
 		}
 		.formStyle(.grouped)
+		.tint(brand)
 		.frame(width: 560, height: 640)
 		.onAppear(perform: refreshOllama)
 	}

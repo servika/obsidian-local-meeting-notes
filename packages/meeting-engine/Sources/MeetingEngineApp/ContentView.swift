@@ -1,5 +1,7 @@
 import SwiftUI
 
+let brand = Color(red: 0.36, green: 0.30, blue: 0.92)
+
 struct ContentView: View {
 	@EnvironmentObject var settings: AppSettings
 	@EnvironmentObject var store: MeetingStore
@@ -10,22 +12,20 @@ struct ContentView: View {
 		NavigationSplitView {
 			VStack(spacing: 0) {
 				List(store.meetings, selection: $selection) { meeting in
-					VStack(alignment: .leading, spacing: 2) {
-						Text(meeting.title).lineLimit(1)
-						Text(meeting.modified, style: .date)
-							.font(.caption).foregroundStyle(.secondary)
-					}
-					.contextMenu {
-						Button("Delete", role: .destructive) {
-							store.delete(meeting)
-							if selection == meeting.id { selection = nil }
+					MeetingRow(meeting: meeting)
+						.contextMenu {
+							Button("Delete", role: .destructive) {
+								store.delete(meeting)
+								if selection == meeting.id { selection = nil }
+							}
 						}
-					}
 				}
+				.listStyle(.sidebar)
+
 				Divider()
-				recordPanel.padding(12)
+				RecordPanel().environmentObject(controller).padding(14)
 			}
-			.navigationSplitViewColumnWidth(min: 240, ideal: 280)
+			.navigationSplitViewColumnWidth(min: 250, ideal: 290)
 		} detail: {
 			if let id = selection, let meeting = store.meetings.first(where: { $0.id == id }) {
 				MeetingDetail(
@@ -38,30 +38,50 @@ struct ContentView: View {
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
 					onRegenerate: { controller.regenerate(meeting) },
-					onDelete: {
-						store.delete(meeting)
-						selection = nil
-					})
+					onDelete: { store.delete(meeting); selection = nil })
 			} else {
 				ContentUnavailableView("No meeting selected", systemImage: "waveform",
 					description: Text("Record a meeting, or pick one from the list."))
 			}
 		}
+		.tint(brand)
 		.onAppear { store.reload(folder: settings.meetingsDirURL) }
 	}
+}
 
-	private var recordPanel: some View {
-		VStack(alignment: .leading, spacing: 8) {
-			Button(controller.isRecording ? "Stop & Transcribe" : "Record") {
-				controller.toggle()
+struct MeetingRow: View {
+	let meeting: Meeting
+	var body: some View {
+		HStack(spacing: 10) {
+			Image(systemName: "waveform.circle.fill")
+				.font(.title2)
+				.foregroundStyle(brand)
+			VStack(alignment: .leading, spacing: 1) {
+				Text(meeting.title).lineLimit(1)
+				Text(meeting.modified, format: .dateTime.month().day().hour().minute())
+					.font(.caption).foregroundStyle(.secondary)
 			}
+		}
+		.padding(.vertical, 2)
+	}
+}
+
+struct RecordPanel: View {
+	@EnvironmentObject var controller: RecordingController
+	var body: some View {
+		VStack(alignment: .leading, spacing: 10) {
+			Button(action: { controller.toggle() }) {
+				Label(controller.isRecording ? "Stop & Transcribe" : "Record",
+					systemImage: controller.isRecording ? "stop.fill" : "record.circle")
+					.frame(maxWidth: .infinity)
+			}
+			.buttonStyle(.borderedProminent)
 			.controlSize(.large)
+			.tint(controller.isRecording ? .red : brand)
 			.disabled(controller.busy)
-			.keyboardShortcut(.defaultAction)
 
 			if controller.busy {
-				ProgressView(value: controller.progress)
-					.progressViewStyle(.linear)
+				ProgressView(value: controller.progress).progressViewStyle(.linear)
 				HStack {
 					Text("\(Int(controller.progress * 100))%")
 					Spacer()
@@ -85,9 +105,15 @@ struct LevelBar: View {
 	let level: Float
 	var body: some View {
 		HStack(spacing: 8) {
-			Text(label).font(.caption).frame(width: 50, alignment: .leading)
-			ProgressView(value: Double(min(max(level, 0), 1)))
-				.progressViewStyle(.linear)
+			Text(label).font(.caption).foregroundStyle(.secondary).frame(width: 48, alignment: .leading)
+			GeometryReader { geo in
+				ZStack(alignment: .leading) {
+					Capsule().fill(Color.secondary.opacity(0.15))
+					Capsule().fill(brand.opacity(0.8))
+						.frame(width: max(2, geo.size.width * CGFloat(min(max(level, 0), 1))))
+				}
+			}
+			.frame(height: 6)
 		}
 	}
 }
@@ -108,19 +134,21 @@ struct MeetingDetail: View {
 		VStack(alignment: .leading, spacing: 0) {
 			HStack(spacing: 8) {
 				TextField("Title", text: $titleField)
-					.textFieldStyle(.roundedBorder)
-					.font(.title3)
+					.textFieldStyle(.plain)
+					.font(.title2.weight(.semibold))
 					.onSubmit { onRename(titleField) }
-				Button("Rename") { onRename(titleField) }
+				Spacer()
+				Button { onRename(titleField) } label: { Image(systemName: "pencil") }
+					.help("Rename")
 					.disabled(titleField.trimmingCharacters(in: .whitespaces).isEmpty || titleField == meeting.title)
-				Button { onRegenerate() } label: { Label("Re-generate", systemImage: "arrow.clockwise") }
+				Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise") }
+					.help("Re-transcribe & summarize")
 					.disabled(busy)
-				Button(role: .destructive) { confirmingDelete = true } label: {
-					Label("Delete", systemImage: "trash")
-				}
-				.disabled(busy)
+				Button(role: .destructive) { confirmingDelete = true } label: { Image(systemName: "trash") }
+					.help("Delete meeting")
+					.disabled(busy)
 			}
-			.padding()
+			.padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 10)
 			.confirmationDialog("Delete “\(meeting.title)”?", isPresented: $confirmingDelete) {
 				Button("Delete meeting & recording", role: .destructive, action: onDelete)
 				Button("Cancel", role: .cancel) {}
@@ -133,21 +161,140 @@ struct MeetingDetail: View {
 					ProgressView(value: progress).progressViewStyle(.linear)
 					Text(status).font(.caption).foregroundStyle(.secondary)
 				}
-				.padding(.horizontal)
-				.padding(.bottom, 8)
+				.padding(.horizontal, 20).padding(.bottom, 10)
 			}
 
 			Divider()
 
 			ScrollView {
-				Text(content)
-					.textSelection(.enabled)
+				NoteView(markdown: content)
 					.frame(maxWidth: .infinity, alignment: .leading)
-					.padding()
+					.padding(20)
 			}
 		}
-		.navigationTitle(meeting.title)
 		.onAppear { titleField = meeting.title }
 		.onChange(of: meeting.id) { titleField = meeting.title }
+	}
+}
+
+/// Renders a meeting note's markdown as styled sections (Summary, Action items
+/// as checkboxes, Transcript with speaker labels).
+struct NoteView: View {
+	let markdown: String
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 22) {
+			ForEach(Array(sections().enumerated()), id: \.offset) { _, sec in
+				VStack(alignment: .leading, spacing: 10) {
+					Label(sec.title, systemImage: icon(for: sec.title))
+						.font(.headline)
+						.foregroundStyle(brand)
+					body(for: sec)
+				}
+			}
+		}
+		.textSelection(.enabled)
+	}
+
+	private struct Section { let title: String; let lines: [String] }
+
+	private func icon(for title: String) -> String {
+		switch title.lowercased() {
+		case "summary": return "text.alignleft"
+		case "action items": return "checklist"
+		case "transcript": return "waveform"
+		default: return "doc.text"
+		}
+	}
+
+	@ViewBuilder
+	private func body(for sec: Section) -> some View {
+		let title = sec.title.lowercased()
+		if title == "action items" {
+			VStack(alignment: .leading, spacing: 6) {
+				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in actionItem(line) }
+			}
+		} else if title == "transcript" {
+			VStack(alignment: .leading, spacing: 10) {
+				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in transcriptLine(line) }
+			}
+		} else {
+			inline(sec.lines.joined(separator: "\n"))
+		}
+	}
+
+	@ViewBuilder
+	private func actionItem(_ line: String) -> some View {
+		let t = line.trimmingCharacters(in: .whitespaces)
+		if t.hasPrefix("- [ ]") || t.hasPrefix("- [x]") || t.hasPrefix("- [X]") {
+			let checked = t.hasPrefix("- [x]") || t.hasPrefix("- [X]")
+			HStack(alignment: .firstTextBaseline, spacing: 8) {
+				Image(systemName: checked ? "checkmark.circle.fill" : "circle")
+					.foregroundStyle(checked ? .green : .secondary)
+				inline(String(t.dropFirst(5)).trimmingCharacters(in: .whitespaces))
+			}
+		} else if t.hasPrefix("- ") {
+			HStack(alignment: .firstTextBaseline, spacing: 8) {
+				Text("•").foregroundStyle(.secondary)
+				inline(String(t.dropFirst(2)))
+			}
+		} else {
+			inline(t)
+		}
+	}
+
+	@ViewBuilder
+	private func transcriptLine(_ line: String) -> some View {
+		if let (speaker, rest) = speakerSplit(line) {
+			HStack(alignment: .top, spacing: 10) {
+				Text(speaker)
+					.font(.caption.weight(.bold))
+					.foregroundStyle(speaker == "You" ? brand : .secondary)
+					.frame(width: 46, alignment: .leading)
+				inline(rest).frame(maxWidth: .infinity, alignment: .leading)
+			}
+		} else {
+			inline(line)
+		}
+	}
+
+	private func speakerSplit(_ line: String) -> (String, String)? {
+		for s in ["You", "Them"] {
+			let p = "**\(s):**"
+			if line.hasPrefix(p) { return (s, String(line.dropFirst(p.count)).trimmingCharacters(in: .whitespaces)) }
+		}
+		return nil
+	}
+
+	private func inline(_ s: String) -> Text {
+		if let a = try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+			return Text(a)
+		}
+		return Text(s)
+	}
+
+	/// Strip frontmatter + the H1, then split into `## ` sections.
+	private func sections() -> [Section] {
+		var text = markdown
+		if text.hasPrefix("---"), let end = text.range(of: "\n---", range: text.index(text.startIndex, offsetBy: 3)..<text.endIndex) {
+			text = String(text[end.upperBound...])
+		}
+		var result: [Section] = []
+		var current: String?
+		var buffer: [String] = []
+		func flush() {
+			if let c = current {
+				let lines = buffer.map { $0 }.drop(while: { $0.isEmpty }).reversed().drop(while: { $0.isEmpty }).reversed()
+				result.append(Section(title: c, lines: Array(lines)))
+			}
+			buffer = []
+		}
+		for raw in text.components(separatedBy: "\n") {
+			if raw.hasPrefix("## ") { flush(); current = String(raw.dropFirst(3)).trimmingCharacters(in: .whitespaces) }
+			else if raw.hasPrefix("# ") { continue }
+			else if current != nil { buffer.append(raw) }
+		}
+		flush()
+		return result
 	}
 }
