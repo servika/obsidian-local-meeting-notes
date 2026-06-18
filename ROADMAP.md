@@ -27,9 +27,9 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
-- **Bake a tuned Llama prompt.**
-  `AppSettings.llamaPrompt` is still a placeholder; replace it with a real
-  tuned prompt.
+- ~~**Bake a tuned Llama prompt.**~~ ✅ Shipped in 0.7.1 - `AppSettings.llamaPrompt`
+  is now a proper tuned plain-instruction prompt (four sections, You/Them roles,
+  no-preamble/no-invention rules).
 - **Add a tuned Qwen default prompt.**
   `qwen2.5:14b` currently falls back to the generic prompt. Add a
   `qwen`-matched default in `AppSettings.defaultPrompt(for:)` and run an A/B

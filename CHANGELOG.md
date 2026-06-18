@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.7.1] - 2026-06-18
+
+#### Changed
+- **Tuned the default Llama prompt.** Replaced the placeholder `llamaPrompt`
+  with a proper plain-instruction prompt (fixed "three"→"four" sections, You/Them
+  roles, stronger no-preamble and no-invention rules) so Llama-family models
+  reliably produce all four sections.
+
 ### [0.7.0] - 2026-06-18
 
 #### Added

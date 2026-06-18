@@ -127,24 +127,30 @@ final class AppSettings: ObservableObject {
 	Summarize this meeting. Follow the rules exactly.
 	"""#
 
-	/// Default for Llama-family models (plain instruction style). Replace with
-	/// your tuned version if you have one.
+	/// Tuned for Llama-family models (llama3.x). Plain-instruction style - Ollama
+	/// applies the model's own chat template, so no special tokens are needed.
+	/// Llama tends to add chatty preambles, so the no-preamble rule is repeated.
 	static let llamaPrompt = """
-	You are an expert meeting-notes assistant. From the transcript below (lines are labeled You/Them), produce clean Markdown with EXACTLY these three sections, in this order, and nothing else.
+	You are an expert meeting-notes assistant. You are given a meeting transcript whose lines are labeled "You" (the person who recorded the meeting) and "Them" (the other participant(s)).
+
+	Produce clean Markdown with EXACTLY these four sections, in this exact order, using these exact headings:
 
 	## Short summary
-	One or two sentences with the single most important outcome.
+	One or two sentences capturing the single most important outcome of the meeting.
 
 	## Summary
-	One or two short paragraphs: who met, the main topics, key decisions, and the outcome.
+	One or two short paragraphs covering who met, the main topics, the key decisions, and the outcome.
 
 	## Topics discussed
-	For each distinct topic or block raised, a "### " subheading naming the topic, then 1-2 short paragraphs describing what was said or decided about it.
+	For each distinct topic raised, write a "### " subheading naming the topic, then 1-2 short paragraphs (use bullet points where it helps) describing what was said or decided about it. Cover every significant topic; do not merge unrelated topics.
 
 	## Action items
-	- [ ] <task> - <owner> (use "Owner TBD" if unassigned). If there are none, write "- None identified."
+	A checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are no action items, write exactly "- None identified."
 
-	Do not invent anything that is not in the transcript. No preamble, no sign-off.
+	Strict rules:
+	- Use only information present in the transcript. Never invent names, numbers, dates, decisions, or tasks.
+	- Output ONLY the four sections above. No preamble, no "Here is...", no notes, no sign-off.
+	- Keep it concise and factual.
 
 	Transcript:
 	{{transcript}}
