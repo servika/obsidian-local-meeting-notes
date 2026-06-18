@@ -25,7 +25,7 @@ cd packages/meeting-engine
 open ".build/AI Meeting Notes.app"
 ```
 
-Full setup and details: **[packages/meeting-engine/README.md](packages/meeting-engine/README.md)** · live site: **https://servika.github.io/ai-meeting-notes/**
+aFull setup and details: **[packages/meeting-engine/README.md](packages/meeting-engine/README.md)** · live site: **https://servika.github.io/ai-meeting-notes/** · planned work: **[ROADMAP.md](ROADMAP.md)**
 
 ---
 
