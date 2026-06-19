@@ -13,6 +13,19 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.17.0] - 2026-06-19
+
+#### Added
+- **Inline audio in Obsidian.** Notes now embed both tracks in an Audio section
+  (`![[… .mic.wav]]` / `… .system.wav`), so Obsidian shows playable audio
+  players. The app hides this section (it accesses recordings directly).
+- **`tags: [meeting]` frontmatter** for Obsidian tag/Dataview queries (alongside
+  the existing `type: meeting`).
+
+#### Changed
+- `noteQualityBaseline` bumped to `0.17.0` so notes without the audio embeds/tags
+  surface the re-generate prompt.
+
 ### [0.16.1] - 2026-06-19
 
 #### Changed

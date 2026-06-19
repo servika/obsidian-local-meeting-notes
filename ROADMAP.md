@@ -20,20 +20,14 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
-- ~~**Decide on `noteQualityBaseline`.**~~ ✅ Bumped to `0.15.0` (0.16.1). VAD
-  (0.13), paragraph splitting (0.14), and the transcript timeline (0.15) changed
-  note output, so notes generated before 0.15.0 now surface the "re-generate"
-  prompt.
-
 ## Capture & product (the "Notion-grade" roadmap)
 
-- **Tighter Obsidian note integration.**
-  Currently the native app integrates file-based: it writes Markdown notes +
-  audio into `<vault>/Meetings/` and reads that folder back. Enhancements:
-  - **Inline audio player** - embed `![[recordings/… .mic.wav]]` in the note
-    body so Obsidian shows a play button (pairs with the transcript timeline).
-  - **Dataview-friendly frontmatter** - add fields like `participants` / `tags`
-    so meetings are queryable.
+- ~~**Tighter Obsidian note integration.**~~ ✅ Shipped in 0.17.0. Notes now
+  embed both audio tracks (`![[… .mic.wav]]` / `… .system.wav`) in an Audio
+  section so Obsidian shows inline players, and carry `tags: [meeting]` for
+  querying (alongside the existing `type: meeting`). The app hides the Audio
+  section (it accesses recordings directly). Possible follow-up: auto-fill a
+  `participants` field once real speaker identification exists.
 - **localhost API + Obsidian plugin integration.**
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
