@@ -13,6 +13,19 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.10.0] - 2026-06-19
+
+#### Added
+- **Tuned Qwen prompt.** Qwen models (`qwen2.5` / `qwen3`) now get a dedicated
+  strict prompt instead of the generic fallback. On messy speech-recognition
+  transcripts the generic prompt made Qwen refuse or go chatty; the tuned prompt
+  forbids that and enforces the four-section format with unchecked action-item
+  boxes.
+
+#### Fixed
+- Generic fallback prompt said "three sections" but listed four; corrected to
+  four, and hardened against refusals/preamble.
+
 ### [0.9.0] - 2026-06-18
 
 #### Added

@@ -20,11 +20,12 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
-- **Add a tuned Qwen default prompt.**
-  `qwen2.5:14b` currently falls back to the generic prompt. Add a
-  `qwen`-matched default in `AppSettings.defaultPrompt(for:)` and run an A/B
-  (gpt-oss vs qwen) on a real transcript to compare quality, especially for
-  Ukrainian.
+- ~~**Add a tuned Qwen default prompt.**~~ ✅ Shipped in 0.10.0. A/B finding:
+  qwen2.5:14b produces excellent, well-structured summaries on *clean*
+  transcripts (arguably better than gpt-oss), but on fragmented base-model
+  Ukrainian ASR it refused/went chatty while gpt-oss tolerated the noise. The
+  tuned `qwenPrompt` forbids refusals/preamble; the real Ukrainian fix is
+  better transcription (use the `large-v3` per-language override).
 - **Decide on `noteQualityBaseline`.**
   Currently `0.3.0`. The temperature-0 determinism fix (0.4.1) improved
   reliability without changing structure - decide whether to bump the baseline

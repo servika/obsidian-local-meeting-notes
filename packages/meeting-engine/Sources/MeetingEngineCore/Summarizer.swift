@@ -10,7 +10,7 @@ public enum SummaryEngine {
 
 public enum Summarizer {
 	public static let defaultPrompt = """
-	You are summarizing a meeting transcript (lines are labeled You/Them). Respond in clean Markdown with EXACTLY these three sections, in this order, and nothing else:
+	You are summarizing a meeting transcript (lines are labeled You/Them). Respond in clean Markdown with EXACTLY these four sections, in this order, and nothing else. Never ask for clarification, refuse, or add any preamble or closing remarks:
 
 	## Short summary
 	One or two sentences with the single most important outcome.

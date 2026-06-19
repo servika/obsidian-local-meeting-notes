@@ -102,6 +102,7 @@ final class AppSettings: ObservableObject {
 	static func defaultPrompt(for model: String) -> String {
 		let m = model.lowercased()
 		if m.contains("gpt-oss") { return gptOssPrompt }
+		if m.contains("qwen") { return qwenPrompt }
 		if m.contains("llama") { return llamaPrompt }
 		return Summarizer.defaultPrompt
 	}
@@ -154,6 +155,36 @@ final class AppSettings: ObservableObject {
 	- Use only information present in the transcript. Never invent names, numbers, dates, decisions, or tasks.
 	- Output ONLY the four sections above. No preamble, no "Here is...", no notes, no sign-off.
 	- Keep it concise and factual.
+
+	Transcript:
+	{{transcript}}
+	"""
+
+	/// Tuned for Qwen models (qwen2.5 / qwen3). Qwen is strong at structured
+	/// output on clean transcripts but, on fragmented speech-recognition text, it
+	/// tends to refuse or go chatty - so the rules forbid that explicitly.
+	static let qwenPrompt = """
+	You are an expert meeting-notes assistant. You are given a raw meeting transcript whose lines are labeled "You" (the person who recorded the meeting) and "Them" (the other participant(s)). It is speech-recognition output, so it may be fragmented, informal, or contain technical terms - work with whatever is there.
+
+	Produce clean Markdown with EXACTLY these four sections, in this exact order, using these exact headings:
+
+	## Short summary
+	One or two sentences capturing the single most important outcome.
+
+	## Summary
+	One or two short paragraphs covering who met, the main topics, the key decisions, and the outcome.
+
+	## Topics discussed
+	For each distinct topic raised, write a "### " subheading naming the topic, then 1-3 short paragraphs (use bullet points where helpful) describing what was said or decided.
+
+	## Action items
+	A checkbox list using UNCHECKED boxes: "- [ ] <task> - <owner>" (use "Owner TBD" if unassigned). If there are none, write exactly "- None identified."
+
+	Strict rules:
+	- ALWAYS produce all four sections, even if the transcript is short, messy, or fragmented. Do your best with whatever content is present.
+	- NEVER ask for clarification, NEVER refuse, and NEVER add any preamble, closing remarks, or commentary about the transcript's quality. Output only the four sections.
+	- Use only information present in the transcript; do not invent names, numbers, or decisions.
+	- Write the notes in the same language as the transcript.
 
 	Transcript:
 	{{transcript}}
