@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.16.1] - 2026-06-19
+
+#### Changed
+- **`noteQualityBaseline` bumped to 0.15.0.** Notes generated before the VAD
+  (0.13), paragraph (0.14), and timeline (0.15) improvements now show the
+  "Generated with an older version - Re-generate" prompt.
+
 ### [0.16.0] - 2026-06-19
 
 #### Added

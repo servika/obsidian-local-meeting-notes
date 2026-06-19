@@ -20,10 +20,10 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
-- **Decide on `noteQualityBaseline`.**
-  Currently `0.3.0`. The temperature-0 determinism fix (0.4.1) improved
-  reliability without changing structure - decide whether to bump the baseline
-  so pre-0.4.1 notes surface the "re-generate" prompt.
+- ~~**Decide on `noteQualityBaseline`.**~~ ✅ Bumped to `0.15.0` (0.16.1). VAD
+  (0.13), paragraph splitting (0.14), and the transcript timeline (0.15) changed
+  note output, so notes generated before 0.15.0 now surface the "re-generate"
+  prompt.
 
 ## Capture & product (the "Notion-grade" roadmap)
 
@@ -31,11 +31,10 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
 - **Real multi-speaker diarization.**
-  Go beyond the current track-based You/Them split to identify individual
-  speakers.
+  Go beyond the current track-based You/Them split to identify individual speakers.
 - **Chat over meetings (RAG).**
   Ask questions across the meeting archive.
-
+ 
 ## Security & polish
 
 - **Keychain for the Claude API key.**
