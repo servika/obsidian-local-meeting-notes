@@ -247,6 +247,7 @@ struct MeetingDetail: View {
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
 	@State private var copied = false
+	@State private var tab = 0
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
@@ -258,11 +259,11 @@ struct MeetingDetail: View {
 				Spacer()
 				Button {
 					NSPasteboard.general.clearContents()
-					NSPasteboard.general.setString(content, forType: .string)
+					NSPasteboard.general.setString(copyText(for: tab), forType: .string)
 					copied = true
 					DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
 				} label: { Image(systemName: copied ? "checkmark" : "doc.on.doc") }
-					.help("Copy full note as Markdown")
+					.help(tab == 0 ? "Copy summary" : tab == 1 ? "Copy transcript" : "Copy full note as Markdown")
 				Button { onRename(titleField) } label: { Image(systemName: "pencil") }
 					.help("Rename")
 					.disabled(titleField.trimmingCharacters(in: .whitespaces).isEmpty || titleField == meeting.title)
@@ -319,18 +320,20 @@ struct MeetingDetail: View {
 
 			Divider()
 
-			TabView {
+			TabView(selection: $tab) {
 				ScrollView {
 					NoteView(markdown: content, only: .summary)
 						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
 				}
 				.tabItem { Label("Summary", systemImage: "text.alignleft") }
+				.tag(0)
 
 				ScrollView {
 					NoteView(markdown: content, only: .transcript)
 						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
 				}
 				.tabItem { Label("Transcript", systemImage: "waveform") }
+				.tag(1)
 
 				ScrollView {
 					Text(content)
@@ -339,11 +342,44 @@ struct MeetingDetail: View {
 						.frame(maxWidth: .infinity, alignment: .leading).padding(20)
 				}
 				.tabItem { Label("Markdown", systemImage: "curlybraces") }
+				.tag(2)
 			}
 			.padding(8)
 		}
 		.onAppear { titleField = meeting.title }
 		.onChange(of: meeting.id) { titleField = meeting.title }
+	}
+
+	/// Markdown to copy for the active tab: summary, transcript, or the full note.
+	private func copyText(for tab: Int) -> String {
+		switch tab {
+		case 0: return Self.summaryMarkdown(content)
+		case 1: return Self.transcriptMarkdown(content)
+		default: return content
+		}
+	}
+
+	private static func stripFrontmatter(_ content: String) -> String {
+		guard content.hasPrefix("---"),
+			let end = content.range(of: "\n---", range: content.index(content.startIndex, offsetBy: 3)..<content.endIndex)
+		else { return content }
+		return String(content[end.upperBound...])
+	}
+
+	/// Title + summary sections (everything before the Transcript), no frontmatter.
+	private static func summaryMarkdown(_ content: String) -> String {
+		var s = stripFrontmatter(content)
+		if let r = s.range(of: "\n## Transcript") { s = String(s[..<r.lowerBound]) }
+		return s.trimmingCharacters(in: .whitespacesAndNewlines)
+	}
+
+	/// Just the Transcript section body (between `## Transcript` and `## Audio`).
+	private static func transcriptMarkdown(_ content: String) -> String {
+		let s = stripFrontmatter(content)
+		guard let start = s.range(of: "## Transcript") else { return "" }
+		var t = String(s[start.upperBound...])
+		if let audio = t.range(of: "\n## Audio") { t = String(t[..<audio.lowerBound]) }
+		return t.trimmingCharacters(in: .whitespacesAndNewlines)
 	}
 }
 

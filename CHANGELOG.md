@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.17.2] - 2026-06-19
+
+#### Changed
+- **Copy button is now tab-aware.** On the Summary tab it copies just the
+  summary, on Transcript it copies the transcript, on Markdown the full note -
+  so you can grab the summary text even when in-place selection is awkward.
+
 ### [0.17.1] - 2026-06-19
 
 #### Fixed
