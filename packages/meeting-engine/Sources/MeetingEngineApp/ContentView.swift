@@ -51,11 +51,18 @@ struct ContentView: View {
 	@EnvironmentObject var store: MeetingStore
 	@EnvironmentObject var controller: RecordingController
 	@State private var selection: Meeting.ID?
+	@State private var query = ""
+
+	private var filteredMeetings: [Meeting] {
+		let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+		guard !q.isEmpty else { return store.meetings }
+		return store.meetings.filter { $0.searchHay.contains(q) }
+	}
 
 	var body: some View {
 		NavigationSplitView {
 			VStack(spacing: 0) {
-				List(store.meetings, selection: $selection) { meeting in
+				List(filteredMeetings, selection: $selection) { meeting in
 					MeetingRow(meeting: meeting)
 						.contextMenu {
 							Button("Delete", role: .destructive) {
@@ -65,6 +72,7 @@ struct ContentView: View {
 						}
 				}
 				.listStyle(.sidebar)
+				.searchable(text: $query, placement: .sidebar, prompt: "Search title or content")
 
 				Divider()
 				RecordPanel().environmentObject(controller).padding(14)

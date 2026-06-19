@@ -5,14 +5,25 @@ struct Meeting: Identifiable, Hashable {
 	let url: URL
 	let title: String
 	let modified: Date
+	/// The meeting's own date/time (from frontmatter), used for stable ordering.
+	let date: Date
 	let durationSeconds: Int
 	/// The app version that generated this note (empty for pre-versioning notes).
 	let appVersion: String
+	/// Lowercased title + body, for searching.
+	let searchHay: String
 }
 
 /// Lists meeting notes (`*.md`) in the configured vault folder.
 final class MeetingStore: ObservableObject {
 	@Published var meetings: [Meeting] = []
+
+	/// Recording-timestamp format used in note frontmatter (`date:`).
+	private static let dateFormatter: DateFormatter = {
+		let f = DateFormatter()
+		f.dateFormat = "yyyy-MM-dd HH-mm-ss"
+		return f
+	}()
 
 	func reload(folder: URL?) {
 		guard let folder = folder else { meetings = []; return }
@@ -28,9 +39,15 @@ final class MeetingStore: ObservableObject {
 				let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
 				let dur = Int(RecordingController.frontmatterValue("duration", in: content) ?? "") ?? 0
 				let ver = RecordingController.frontmatterValue("app_version", in: content) ?? ""
-				return Meeting(id: url.path, url: url, title: url.deletingPathExtension().lastPathComponent, modified: mod, durationSeconds: dur, appVersion: ver)
+				let title = url.deletingPathExtension().lastPathComponent
+				// Order by the meeting's own timestamp so re-transcribing (which
+				// touches the file's mtime) never reorders the list.
+				let dateStr = RecordingController.frontmatterValue("date", in: content) ?? ""
+				let date = Self.dateFormatter.date(from: dateStr) ?? mod
+				let hay = (title + "\n" + content).lowercased()
+				return Meeting(id: url.path, url: url, title: title, modified: mod, date: date, durationSeconds: dur, appVersion: ver, searchHay: hay)
 			}
-			.sorted { $0.modified > $1.modified }
+			.sorted { $0.date > $1.date }
 	}
 
 	func content(of meeting: Meeting) -> String {

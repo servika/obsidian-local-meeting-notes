@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.16.0] - 2026-06-19
+
+#### Added
+- **Search** the meetings list by title or content (sidebar search field).
+
+#### Changed
+- **Stable ordering by meeting date/time** (from the note's frontmatter) instead
+  of file modification time, so re-transcribing a meeting no longer moves it to
+  the top of the list.
+
 ### [0.15.0] - 2026-06-19
 
 #### Added
