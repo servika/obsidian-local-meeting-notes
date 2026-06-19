@@ -50,6 +50,14 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
  
 ## Security & polish
 
+- **Estimate transcription time (ETA).**
+  Show how long processing will take. Approaches:
+  - **Live ETA** - extrapolate remaining time from the existing progress %
+    (`elapsed / progress`), refined each second. Robust; no calibration needed.
+  - **Pre-start estimate** - rough up-front guess from audio duration × a learned
+    per-model throughput (stored, self-calibrating). Less reliable now that VAD
+    skips non-speech (processing time tracks speech amount, not file length), so
+    treat as approximate.
 - **Keychain for the Claude API key.**
   Currently stored in UserDefaults as plaintext; move it to the Keychain.
 - **Add more meeting languages.**
