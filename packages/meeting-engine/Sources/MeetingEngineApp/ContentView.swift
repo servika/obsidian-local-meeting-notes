@@ -536,10 +536,13 @@ struct NoteView: View {
 		var result: [Section] = []
 		var current: String?
 		var buffer: [String] = []
+		var preamble: [String] = []
+		func trimEdges(_ lines: [String]) -> [String] {
+			Array(lines.drop(while: { $0.isEmpty }).reversed().drop(while: { $0.isEmpty }).reversed())
+		}
 		func flush() {
 			if let c = current {
-				let lines = buffer.map { $0 }.drop(while: { $0.isEmpty }).reversed().drop(while: { $0.isEmpty }).reversed()
-				result.append(Section(title: c, lines: Array(lines)))
+				result.append(Section(title: c, lines: trimEdges(buffer)))
 			}
 			buffer = []
 		}
@@ -547,8 +550,17 @@ struct NoteView: View {
 			if raw.hasPrefix("## ") { flush(); current = String(raw.dropFirst(3)).trimmingCharacters(in: .whitespaces) }
 			else if raw.hasPrefix("# ") { continue }
 			else if current != nil { buffer.append(raw) }
+			else { preamble.append(raw) } // content before the first "## " heading
 		}
 		flush()
+		// Some models emit the summary as plain text with no "## " headings; that
+		// content lands in `preamble` and would otherwise be invisible in the
+		// Summary tab. Surface it as a Summary section (only when there isn't a
+		// real summary section already).
+		let lead = trimEdges(preamble)
+		if !lead.isEmpty, !result.contains(where: { $0.title.lowercased() != "transcript" }) {
+			result.insert(Section(title: "Summary", lines: lead), at: 0)
+		}
 		return result
 	}
 }

@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.12.1] - 2026-06-19
+
+#### Fixed
+- **Empty Summary tab when the model skipped section headings.** If a summary
+  came back as plain text without `## ` headings, the Summary tab showed nothing
+  (while the Markdown tab showed the text). That leading content is now surfaced
+  as a Summary section so it's always visible.
+
 ### [0.12.0] - 2026-06-19
 
 #### Added
