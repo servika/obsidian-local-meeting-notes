@@ -18,6 +18,16 @@ ROOT="$(pwd)"
 SRC="$ROOT/.build/whisper-src"
 BUILD="$ROOT/.build/whisper-build"
 OUT="$ROOT/vendor/whisper-cli"
+VAD_OUT="$ROOT/vendor/ggml-silero-v5.1.2.bin"
+VAD_URL="https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin"
+
+# Silero VAD model (~0.9 MB) - bundled so transcription can skip non-speech and
+# avoid hallucinations on silence. Fetched independently of the whisper-cli cache.
+if [[ ! -s "$VAD_OUT" ]]; then
+  echo "Downloading Silero VAD model..."
+  mkdir -p "$(dirname "$VAD_OUT")"
+  curl -fsSL -o "$VAD_OUT" "$VAD_URL"
+fi
 
 if [[ "${1:-}" != "--force" && -x "$OUT" ]]; then
   echo "whisper-cli already built: $OUT ($(file -b "$OUT" | cut -d, -f1,2))"

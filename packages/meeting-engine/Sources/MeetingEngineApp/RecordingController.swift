@@ -85,9 +85,13 @@ final class RecordingController: ObservableObject {
 			let result = r.stop()
 			DispatchQueue.main.async { self.systemLevel = 0; self.micLevel = 0 }
 
-			let title = "Meeting \(stamp)"
 			let audioBase = "recordings/Meeting \(stamp)"
-			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
+			// Follow a rename made during recording: find the placeholder note by
+			// its audio link rather than reconstructing the original filename, so
+			// we update that note instead of creating a duplicate.
+			let noteURL = Self.existingNoteURL(audioBase: audioBase, in: meetingsDir)
+				?? meetingsDir.appendingPathComponent("Meeting \(stamp).md")
+			let title = noteURL.deletingPathExtension().lastPathComponent
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, cancel: token)
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: summary, transcript: transcript)
@@ -214,6 +218,18 @@ final class RecordingController: ObservableObject {
 			}
 		}
 		return 0
+	}
+
+	/// Find an existing note that links the given audio base - matches even if the
+	/// note file was renamed during recording.
+	static func existingNoteURL(audioBase: String, in dir: URL) -> URL? {
+		let items = (try? FileManager.default.contentsOfDirectory(
+			at: dir, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+		for url in items where url.pathExtension.lowercased() == "md" {
+			let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+			if frontmatterValue("audio", in: content) == audioBase { return url }
+		}
+		return nil
 	}
 
 	/// Read a `key: value` line from a note's YAML frontmatter block.

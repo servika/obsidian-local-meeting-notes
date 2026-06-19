@@ -26,6 +26,8 @@ echo "  bundling whisper-cli..."
 ./scripts/build-whisper.sh
 cp vendor/whisper-cli "$APP/Contents/Resources/whisper-cli"
 chmod +x "$APP/Contents/Resources/whisper-cli"
+# VAD model (data file, no signing needed) - enables skipping non-speech.
+cp vendor/ggml-silero-v5.1.2.bin "$APP/Contents/Resources/ggml-silero-v5.1.2.bin"
 
 # Generate + embed the app icon (best-effort).
 if swift scripts/make-icon.swift "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then

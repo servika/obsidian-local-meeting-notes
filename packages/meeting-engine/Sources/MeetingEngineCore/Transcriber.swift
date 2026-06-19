@@ -51,6 +51,13 @@ public enum Transcriber {
 
 		log("transcribing \(speaker) track…")
 		var args = ["-m", modelPath, "-f", wav16, "-l", language, "-oj", "-pp", "-of", base]
+		// Suppress non-speech tokens, and use VAD when the bundled Silero model is
+		// present - together these avoid hallucinations on silence (e.g. repeated
+		// "Дякую за перегляд!") and improve accuracy by skipping non-speech.
+		args += ["--suppress-nst"]
+		if let vad = bundledVADModel() {
+			args += ["--vad", "--vad-model", vad]
+		}
 		let hint = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
 		if !hint.isEmpty {
 			// Bias spelling/vocabulary across the whole recording, not just the start.
@@ -110,6 +117,13 @@ public enum Transcriber {
 	/// Resolution order: an explicit absolute path, then the copy bundled inside
 	/// the app (`Contents/Resources/<name>`, self-contained - no Homebrew
 	/// needed), then Homebrew/system locations for CLI and dev use.
+	/// Path to the Silero VAD model bundled in the app, if present.
+	private static func bundledVADModel() -> String? {
+		guard let resources = Bundle.main.resourceURL else { return nil }
+		let path = resources.appendingPathComponent("ggml-silero-v5.1.2.bin").path
+		return FileManager.default.fileExists(atPath: path) ? path : nil
+	}
+
 	private static func resolveBinary(_ name: String) -> String {
 		if name.hasPrefix("/") { return name }
 		if let resources = Bundle.main.resourceURL {

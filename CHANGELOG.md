@@ -13,6 +13,21 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.13.0] - 2026-06-19
+
+#### Added
+- **Voice Activity Detection (VAD).** A small Silero VAD model is now bundled and
+  used during transcription, plus `--suppress-nst`. This skips non-speech regions
+  so whisper no longer hallucinates phrases like "Дякую за перегляд!" on silence,
+  and it noticeably improves real transcription quality.
+- **Default model is now a dropdown** of downloaded models (like the per-language
+  setting), instead of a free-text path field.
+
+#### Fixed
+- **Renaming a meeting while recording created a duplicate note.** On finish, the
+  recording now updates the (possibly renamed) note by matching its audio link,
+  instead of recreating the original filename.
+
 ### [0.12.1] - 2026-06-19
 
 #### Fixed

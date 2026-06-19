@@ -116,7 +116,11 @@ struct SettingsView: View {
 
 			Section("Transcription") {
 				HStack {
-					TextField("Default whisper model path", text: $settings.whisperModelPath)
+					Picker("Default model", selection: $settings.whisperModelPath) {
+						ForEach(modelOptions(including: settings.whisperModelPath), id: \.path) {
+							Text($0.name).tag($0.path)
+						}
+					}
 					if modelExists {
 						Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
 					} else {
@@ -124,7 +128,7 @@ struct SettingsView: View {
 					}
 				}
 				if !modelExists {
-					Text("No model at that path. Download one below.")
+					Text("No model downloaded yet. Download one below.")
 						.font(.caption).foregroundStyle(.orange)
 				}
 				TextField("Language (auto, en, uk, de, ua, …)", text: $settings.language)
