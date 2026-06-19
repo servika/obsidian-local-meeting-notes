@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.20.1] - 2026-06-19
+
+#### Fixed
+- **Summaries dropping "Topics discussed" / writing in the wrong language.** The
+  Qwen prompt now forces every heading (including Topics discussed, with 2-5
+  sentences per topic) and the summary language is injected explicitly
+  (`{{language}}`) - generic "same language" let the model default to English.
+  `noteQualityBaseline` bumped to 0.20.1.
+
 ### [0.20.0] - 2026-06-19
 
 #### Fixed

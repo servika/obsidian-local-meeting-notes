@@ -182,7 +182,8 @@ final class RecordingController: ObservableObject {
 		var summary = ""
 		if let engine = Self.engine(from: settings) {
 			DispatchQueue.main.async { self.status = "Summarizing…"; self.progress = 0.92 }
-			do { summary = try Summarizer.summarize(transcript: transcript, prompt: settings.currentPrompt(), engine: engine) }
+			let prompt = settings.currentPrompt().replacingOccurrences(of: "{{language}}", with: Self.languageName(lang))
+			do { summary = try Summarizer.summarize(transcript: transcript, prompt: prompt, engine: engine) }
 			catch { DispatchQueue.main.async { self.status = "Summary skipped: \(error)" } }
 		}
 		return (transcript, summary)
@@ -201,6 +202,16 @@ final class RecordingController: ObservableObject {
 	}
 
 	// MARK: helpers
+
+	/// Human-readable language for the `{{language}}` prompt slot. "auto" (or
+	/// anything unknown) tells the model to match the transcript's language.
+	private static func languageName(_ code: String) -> String {
+		switch code {
+		case "uk": return "Ukrainian"
+		case "en": return "English"
+		default: return "the same language as the transcript"
+		}
+	}
 
 	private static func engine(from s: AppSettings) -> SummaryEngine? {
 		switch s.summaryEngine {

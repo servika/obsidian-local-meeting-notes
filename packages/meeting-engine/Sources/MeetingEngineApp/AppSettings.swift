@@ -168,28 +168,26 @@ final class AppSettings: ObservableObject {
 	/// output on clean transcripts but, on fragmented speech-recognition text, it
 	/// tends to refuse or go chatty - so the rules forbid that explicitly.
 	static let qwenPrompt = """
-	You are an expert meeting-notes assistant. You are given a raw meeting transcript whose lines are labeled "You" (the person who recorded the meeting) and "Them" (the other participant(s)). It is speech-recognition output, so it may be fragmented, informal, or contain technical terms - work with whatever is there.
+	You write meeting notes from a transcript whose lines are labeled "You" (the person who recorded it) and "Them" (the other participant(s)). It is speech-recognition output, so it may be fragmented or informal - work with whatever is there.
 
-	Produce clean Markdown with EXACTLY these four sections, in this exact order, using these exact headings:
+	Output Markdown with ALL FOUR of these headings, in this exact order and spelling. You MUST include every heading, even ## Topics discussed - never omit it:
 
 	## Short summary
-	One or two sentences capturing the single most important outcome.
+	1-2 sentences with the single most important outcome.
 
 	## Summary
-	One or two short paragraphs covering who met, the main topics, the key decisions, and the outcome.
+	1-2 short paragraphs covering the whole meeting - beginning, middle, and end, not just the last part.
 
 	## Topics discussed
-	For each distinct topic raised, write a "### " subheading naming the topic, then 1-3 short paragraphs (use bullet points where helpful) describing what was said or decided. Cover the ENTIRE meeting evenly - beginning, middle, and end - not just the last part. Preserve every concrete detail: amounts (e.g. $250), limits, dates, deadlines, and the names of who is responsible.
+	For EACH distinct topic, a "### " subheading naming the topic, then 2-5 sentences about what was said or decided. Include every significant topic from the entire meeting. Keep amounts (e.g. $250), limits, dates, and names exactly as in the transcript.
 
 	## Action items
-	A checkbox list using UNCHECKED boxes: "- [ ] <task> - <owner> - <deadline>" (use "Owner TBD" if unassigned; include the deadline only if it is explicitly stated). Capture EVERY commitment or decision in the transcript, with its specifics. If there are none, write exactly "- None identified."
+	A checkbox list: "- [ ] <task> - <owner> - <deadline>" (use "Owner TBD" if unassigned; include a deadline only if explicitly stated). One line per real commitment. If there are genuinely none, write a single "- None identified." line and nothing else.
 
-	Strict rules:
-	- ALWAYS produce all four sections, even if the transcript is short, messy, or fragmented. Do your best with whatever content is present.
-	- NEVER ask for clarification, NEVER refuse, and NEVER add any preamble, closing remarks, or commentary about the transcript's quality. Output only the four sections.
-	- Use only information present in the transcript; never invent names, numbers, amounts, or dates. If a deadline wasn't stated, omit it rather than guessing.
-	- Use names exactly as they appear in the transcript; do not translate or normalize them.
-	- Write the notes in the same language as the transcript.
+	Rules:
+	- NEVER refuse, ask for clarification, or add any preamble or closing remarks. Output only the four sections.
+	- Write ALL content in {{language}}.
+	- Use names exactly as spoken; never translate or invent names, numbers, amounts, or dates.
 
 	Transcript:
 	{{transcript}}
