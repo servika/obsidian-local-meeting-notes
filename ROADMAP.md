@@ -34,7 +34,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Capture & product (the "Notion-grade" roadmap)
 
-- ~~**Tighter Obsidian note integration.**~~ ✅ Shipped in 0.17.0. Notes now
+- ✅ **Tighter Obsidian note integration.** Shipped in 0.17.0. Notes now
   embed both audio tracks (`![[… .mic.wav]]` / `… .system.wav`) in an Audio
   section so Obsidian shows inline players, and carry `tags: [meeting]` for
   querying (alongside the existing `type: meeting`). The app hides the Audio
@@ -44,7 +44,35 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
 - **Real multi-speaker diarization.**
-  Go beyond the current track-based You/Them split to identify individual speakers.
+  Go beyond the current track-based You/Them split to identify individual
+  speakers. The two-track setup helps: the **mic track is already cleanly
+  "You"**, so only the **system track** (remote participants) needs diarizing.
+
+  Pipeline:
+  1. **Segmentation** - detect speaker-change boundaries on the system track.
+  2. **Speaker embeddings** - a voice-fingerprint vector per segment.
+  3. **Clustering** - group segments into N speakers (auto-estimate count, or let
+     the user set it).
+  4. **Merge** - align speaker spans with whisper's timestamped segments (we
+     already have per-segment timestamps) so each transcript line gets a speaker.
+
+  **Tech:** bundle **sherpa-onnx** (ONNX Runtime, C++) - does segmentation +
+  embeddings + clustering, ships as a native binary + small ONNX models (same
+  pattern as the bundled `whisper-cli` and Silero VAD), offline/privacy-safe.
+  Rejected: pyannote.audio (drags in Python + PyTorch); whisper.cpp `--diarize`
+  (English-only turn detection via tinydiarize - useless for Ukrainian).
+
+  **Caveats:** accuracy varies on real meeting audio (compression, varied remote
+  mics, overlapping speech - "good not perfect"); unknown speaker count; naming
+  is a *separate* problem (diarization yields "Speaker 1/2/3", not names).
+
+  **Phased plan:**
+  1. Diarize the system track into `Them 1 / Them 2 / …`; keep "You" from the mic
+     track. Ships the core value.
+  2. UI to **rename speakers** per meeting (and persist the mapping).
+  3. Auto-name from **calendar attendees** / LLM inference, once those land.
+  Worth a small prototype spike first: run sherpa-onnx on an existing
+  `*.system.wav` to gauge real-world accuracy before committing.
 - **Chat over meetings (RAG).**
   Ask questions across the meeting archive.
  
