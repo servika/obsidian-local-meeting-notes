@@ -20,12 +20,6 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
-- ~~**Add a tuned Qwen default prompt.**~~ ✅ Shipped in 0.10.0. A/B finding:
-  qwen2.5:14b produces excellent, well-structured summaries on *clean*
-  transcripts (arguably better than gpt-oss), but on fragmented base-model
-  Ukrainian ASR it refused/went chatty while gpt-oss tolerated the noise. The
-  tuned `qwenPrompt` forbids refusals/preamble; the real Ukrainian fix is
-  better transcription (use the `large-v3` per-language override).
 - **Decide on `noteQualityBaseline`.**
   Currently `0.3.0`. The temperature-0 determinism fix (0.4.1) improved
   reliability without changing structure - decide whether to bump the baseline
@@ -33,13 +27,6 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Capture & product (the "Notion-grade" roadmap)
 
-- **Auto-start recording.**
-  - ✅ Shipped in 0.8.0: **suggest** recording when a meeting is detected (the
-    mic goes in-use by another app, via Core Audio). A nudge appears; the user
-    decides - it never records on its own.
-  - Future: optional Calendar (EventKit) detection to nudge at a scheduled
-    event's start and auto-fill the title, and a fully-automatic start/stop
-    mode for users who want it.
 - **localhost API + Obsidian plugin integration.**
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
@@ -57,3 +44,15 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
   Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
   language list in `meetingLanguages` beyond English/Ukrainian in a future
   release, so users can pin other languages for best transcription quality.
+
+## Postponed
+
+- **Windows / cross-platform app.** Postponed. The current macOS app can't be
+  ported directly: SwiftUI, Core Audio process taps (zero-setup system-audio
+  capture), and AVFoundation are Apple-only. whisper.cpp and the Ollama/Claude
+  summarization logic are cross-platform. Options when revisited:
+  1. Windows users use the **Obsidian plugin** today + a loopback device
+     (Stereo Mix / VB-Audio Cable) for system audio.
+  2. A **cross-platform rewrite** (e.g. Tauri) reusing whisper + summarization,
+     reimplementing capture with WASAPI loopback (system) and WASAPI (mic), and
+     a single shared UI for macOS + Windows - preferred over a Windows-only fork.
