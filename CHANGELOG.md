@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.13.1] - 2026-06-19
+
+#### Fixed
+- **Deleting a meeting no longer removes audio another note still uses.** Audio
+  tracks are deleted only when no remaining note references that recording -
+  preventing data loss when an older duplicate note shared the same audio.
+
 ### [0.13.0] - 2026-06-19
 
 #### Added

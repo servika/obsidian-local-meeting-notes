@@ -54,14 +54,18 @@ final class MeetingStore: ObservableObject {
 		return meetings.first { $0.url == newURL }
 	}
 
-	/// Delete a meeting: the note and its linked audio tracks.
+	/// Delete a meeting: the note and its linked audio tracks. Audio is kept if
+	/// another note still references the same recording (guards against wiping
+	/// shared audio, e.g. from an older duplicate note).
 	func delete(_ meeting: Meeting) {
 		let dir = meeting.url.deletingLastPathComponent()
 		let content = (try? String(contentsOf: meeting.url, encoding: .utf8)) ?? ""
 		let audioBase = RecordingController.frontmatterValue("audio", in: content) ?? "recordings/\(meeting.title)"
 		try? FileManager.default.removeItem(at: meeting.url)
-		for ext in ["system.wav", "mic.wav"] {
-			try? FileManager.default.removeItem(at: dir.appendingPathComponent(audioBase + "." + ext))
+		if RecordingController.existingNoteURL(audioBase: audioBase, in: dir) == nil {
+			for ext in ["system.wav", "mic.wav"] {
+				try? FileManager.default.removeItem(at: dir.appendingPathComponent(audioBase + "." + ext))
+			}
 		}
 		reload(folder: dir)
 	}
