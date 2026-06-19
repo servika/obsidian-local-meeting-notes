@@ -27,6 +27,13 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Capture & product (the "Notion-grade" roadmap)
 
+- **Tighter Obsidian note integration.**
+  Currently the native app integrates file-based: it writes Markdown notes +
+  audio into `<vault>/Meetings/` and reads that folder back. Enhancements:
+  - **Inline audio player** - embed `![[recordings/… .mic.wav]]` in the note
+    body so Obsidian shows a play button (pairs with the transcript timeline).
+  - **Dataview-friendly frontmatter** - add fields like `participants` / `tags`
+    so meetings are queryable.
 - **localhost API + Obsidian plugin integration.**
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
