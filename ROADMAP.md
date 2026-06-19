@@ -20,6 +20,18 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
+- **Meeting category (1:1, daily sync, planning, …).**
+  Add a `category:` frontmatter field (NOT `type:` - that's already
+  `type: meeting`). Levels, in order of value:
+  1. **Label only** - a dropdown (presets + custom) for organizing / searching /
+     Dataview queries.
+  2. **Per-category summary prompts** - the real win: tailor the summary to the
+     type (1:1 → action items + growth notes; standup → updates + blockers;
+     planning → decisions + owners; interview → candidate signals). Reuses the
+     existing per-model prompt machinery.
+  3. **Auto-detect** - infer the category from the calendar event title (once
+     calendar integration lands) or via an LLM classification. Defer.
+
 ## Capture & product (the "Notion-grade" roadmap)
 
 - ~~**Tighter Obsidian note integration.**~~ ✅ Shipped in 0.17.0. Notes now
