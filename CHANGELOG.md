@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.9.0] - 2026-06-18
+
+#### Added
+- **Menu bar item.** A status-bar icon reflects state at a glance (idle /
+  recording / processing / meeting-detected) and its menu offers one-click
+  Start/Stop, the "meeting detected" nudge, Open window, and Quit - so you can
+  control recording even when the main window is closed or behind your call.
+
 ### [0.8.0] - 2026-06-18
 
 #### Added

@@ -33,5 +33,12 @@ struct MeetingNotesApp: App {
 		Settings {
 			SettingsView().environmentObject(settings)
 		}
+
+		MenuBarExtra {
+			MenuBarContent(controller: controller, detector: detector)
+		} label: {
+			MenuBarLabel(controller: controller, detector: detector)
+		}
+		.menuBarExtraStyle(.menu)
 	}
 }
