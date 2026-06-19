@@ -12,6 +12,8 @@ final class RecordingController: ObservableObject {
 	@Published var micLevel: Float = 0
 	@Published var progress: Double = 0
 	@Published var elapsed: String = ""
+	/// Estimated time remaining for the current processing (live, from progress).
+	@Published var remaining: String = ""
 	/// The meeting currently being recorded or processed (for selection + row icon).
 	@Published var activeID: String?
 
@@ -254,16 +256,36 @@ final class RecordingController: ObservableObject {
 	private func startElapsedTimer() {
 		procStart = Date()
 		elapsed = "0s"
+		remaining = ""
 		procTimer?.invalidate()
 		procTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
 			guard let self = self, let start = self.procStart else { return }
-			self.elapsed = String(format: "%.0fs", Date().timeIntervalSince(start))
+			let e = Date().timeIntervalSince(start)
+			self.elapsed = Self.shortTime(e)
+			// Extrapolate remaining from progress once there's enough signal to be
+			// meaningful (the pipeline starts at 0.05 and ends at 1.0).
+			let p = self.progress
+			if p > 0.1, p < 0.99 {
+				let rem = e / p - e
+				self.remaining = rem > 1 ? "~\(Self.shortTime(rem)) left" : ""
+			} else {
+				self.remaining = ""
+			}
 		}
+	}
+
+	/// Compact duration like `45s`, `2m 05s`, `1h 03m`.
+	private static func shortTime(_ seconds: TimeInterval) -> String {
+		let s = max(0, Int(seconds.rounded()))
+		if s < 60 { return "\(s)s" }
+		if s < 3600 { return String(format: "%dm %02ds", s / 60, s % 60) }
+		return String(format: "%dh %02dm", s / 3600, (s % 3600) / 60)
 	}
 
 	private func stopElapsedTimer() {
 		procTimer?.invalidate()
 		procTimer = nil
+		remaining = ""
 	}
 
 	private static func timestamp() -> String {

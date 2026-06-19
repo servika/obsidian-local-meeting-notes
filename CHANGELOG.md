@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.18.0] - 2026-06-19
+
+#### Added
+- **Live transcription ETA.** During processing the app now shows an estimated
+  time remaining (e.g. `~2m 10s left`), extrapolated from progress and refined
+  each second - in the record panel and the meeting's processing bar.
+
 ### [0.17.2] - 2026-06-19
 
 #### Changed

@@ -89,6 +89,7 @@ struct ContentView: View {
 					busy: controller.busy,
 					progress: controller.progress,
 					status: controller.status,
+					eta: controller.remaining,
 					onRename: { newName in
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
@@ -192,6 +193,10 @@ struct RecordPanel: View {
 				ProgressView(value: controller.progress).progressViewStyle(.linear)
 				HStack {
 					Text("\(Int(controller.progress * 100))%")
+					if !controller.remaining.isEmpty {
+						Spacer()
+						Text(controller.remaining)
+					}
 					Spacer()
 					Text(controller.elapsed)
 				}
@@ -240,6 +245,7 @@ struct MeetingDetail: View {
 	let busy: Bool
 	let progress: Double
 	let status: String
+	let eta: String
 	let onRename: (String) -> Void
 	let onRegenerate: () -> Void
 	let onDelete: () -> Void
@@ -310,7 +316,8 @@ struct MeetingDetail: View {
 				HStack(spacing: 12) {
 					VStack(alignment: .leading, spacing: 4) {
 						ProgressView(value: progress).progressViewStyle(.linear)
-						Text(status).font(.caption).foregroundStyle(.secondary)
+						Text(eta.isEmpty ? status : "\(status)  ·  \(eta)")
+							.font(.caption).foregroundStyle(.secondary)
 					}
 					Button("Stop", role: .destructive) { onCancel() }
 						.controlSize(.small)
