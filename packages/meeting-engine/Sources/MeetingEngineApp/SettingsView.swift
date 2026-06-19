@@ -8,6 +8,7 @@ struct SettingsView: View {
 	@State private var ollamaModels: [String] = []
 	@State private var modelToDownload = "base"
 	@State private var overrideLang = "uk"
+	@State private var presetMessage = ""
 
 	static var appVersion: String {
 		Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -97,6 +98,22 @@ struct SettingsView: View {
 		.tabItem { Label("General", systemImage: "folder") }
 
 		Form {
+			Section("Quick setup") {
+				HStack {
+					Button {
+						applyUkrainianPreset()
+					} label: {
+						Label("Best quality for Ukrainian", systemImage: "star.fill")
+					}
+					.disabled(downloader.isDownloading)
+					if !presetMessage.isEmpty {
+						Text(presetMessage).font(.caption).foregroundStyle(.secondary)
+					}
+				}
+				Text("Sets the meeting language to Ukrainian and uses the large-v3 model for it (downloads it first if needed). Best accuracy; slower than base.")
+					.font(.caption).foregroundStyle(.secondary)
+			}
+
 			Section("Transcription") {
 				HStack {
 					TextField("Default whisper model path", text: $settings.whisperModelPath)
@@ -286,6 +303,27 @@ struct SettingsView: View {
 		panel.allowsMultipleSelection = false
 		panel.prompt = "Choose Vault"
 		if panel.runModal() == .OK, let url = panel.url { settings.vaultPath = url.path }
+	}
+
+	/// One-click "best quality for Ukrainian": language = uk and large-v3 pinned
+	/// to Ukrainian (downloaded first if it isn't present).
+	private func applyUkrainianPreset() {
+		settings.language = "uk"
+		let path = ("~/models/ggml-large-v3.bin" as NSString).expandingTildeInPath
+		if FileManager.default.fileExists(atPath: path) {
+			settings.setModel(path, for: "uk")
+			presetMessage = "Ukrainian → large-v3 ✓"
+			return
+		}
+		presetMessage = "Downloading large-v3…"
+		downloader.download(model: "large-v3") { url in
+			if let url = url {
+				settings.setModel(url.path, for: "uk")
+				presetMessage = "Ukrainian → large-v3 ✓"
+			} else {
+				presetMessage = "Download failed - try again."
+			}
+		}
 	}
 
 	private func refreshOllama() {

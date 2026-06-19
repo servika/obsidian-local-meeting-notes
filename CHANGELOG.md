@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.12.0] - 2026-06-19
+
+#### Added
+- **"Best quality for Ukrainian" preset** (Settings → Transcription → Quick
+  setup). One click sets the language to Ukrainian and pins the `large-v3` model
+  for it, downloading large-v3 first if it isn't present.
+
 ### [0.11.0] - 2026-06-19
 
 #### Added
