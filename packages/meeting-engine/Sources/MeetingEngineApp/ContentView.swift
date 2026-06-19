@@ -395,8 +395,9 @@ struct NoteView: View {
 				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in actionItem(line) }
 			}
 		} else if title == "transcript" {
+			let lines = sec.lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
 			VStack(alignment: .leading, spacing: 8) {
-				ForEach(Array(sec.lines.enumerated()), id: \.offset) { _, line in transcriptLine(line) }
+				ForEach(Array(lines.enumerated()), id: \.offset) { _, line in transcriptLine(line) }
 			}
 		} else if title == "topics discussed" || title == "topics" || title == "discussion" {
 			topicBlocks(sec.lines)
@@ -508,7 +509,10 @@ struct NoteView: View {
 				inline(rest).frame(maxWidth: .infinity, alignment: .leading)
 			}
 		} else {
+			// Continuation paragraph of the same speaker - indent under their text.
 			inline(line)
+				.frame(maxWidth: .infinity, alignment: .leading)
+				.padding(.leading, 64)
 		}
 	}
 

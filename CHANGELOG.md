@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.14.0] - 2026-06-19
+
+#### Changed
+- **Readable transcripts.** Long monologues are now broken into paragraphs (on
+  speech pauses and at sentence boundaries) instead of one giant block. In the
+  app, continuation paragraphs are indented under the speaker. Applies to new
+  transcripts and re-generations.
+
 ### [0.13.1] - 2026-06-19
 
 #### Fixed

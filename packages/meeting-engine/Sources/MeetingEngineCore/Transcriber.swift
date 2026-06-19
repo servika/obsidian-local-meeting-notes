@@ -94,20 +94,45 @@ public enum Transcriber {
 	/// Consecutive segments from the same speaker are collapsed into one line.
 	public static func diarizedMarkdown(_ segments: [TranscriptSegment]) -> String {
 		let sorted = segments.sorted { $0.start < $1.start }
-		var lines: [String] = []
+		var blocks: [String] = []
 		var speaker = ""
-		var buffer = ""
-		func flush() {
-			let t = buffer.trimmingCharacters(in: .whitespaces)
-			if !t.isEmpty { lines.append("**\(speaker):** \(t)") }
-			buffer = ""
+		var paragraph = ""
+		var firstOfTurn = true
+		var lastEnd = 0.0
+
+		// Emit the current paragraph: the first paragraph of a turn carries the
+		// speaker label; later paragraphs of the same turn are unlabeled
+		// continuations (rendered indented under the speaker).
+		func endParagraph() {
+			let t = paragraph.trimmingCharacters(in: .whitespaces)
+			if !t.isEmpty {
+				blocks.append(firstOfTurn ? "**\(speaker):** \(t)" : t)
+				firstOfTurn = false
+			}
+			paragraph = ""
 		}
+
 		for seg in sorted {
-			if seg.speaker != speaker { flush(); speaker = seg.speaker }
-			buffer += (buffer.isEmpty ? "" : " ") + seg.text
+			let text = seg.text.trimmingCharacters(in: .whitespaces)
+			if text.isEmpty { continue }
+			if seg.speaker != speaker {
+				endParagraph()
+				speaker = seg.speaker
+				firstOfTurn = true
+			} else if !paragraph.isEmpty {
+				// Break a long monologue into paragraphs: on a noticeable pause,
+				// or once a paragraph is long and ends a sentence.
+				let gap = seg.start - lastEnd
+				let endsSentence = [".", "!", "?", "…"].contains { paragraph.hasSuffix($0) }
+				if gap > 1.5 || (paragraph.count > 320 && endsSentence) {
+					endParagraph()
+				}
+			}
+			paragraph += (paragraph.isEmpty ? "" : " ") + text
+			lastEnd = seg.end
 		}
-		flush()
-		return lines.joined(separator: "\n\n")
+		endParagraph()
+		return blocks.joined(separator: "\n\n")
 	}
 
 	/// Resolve a bare command to an absolute path. The app, launched via
