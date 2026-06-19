@@ -114,6 +114,11 @@ struct SettingsView: View {
 				Text("Auto-detect / non-English needs a multilingual model (not the .en variant).")
 					.font(.caption).foregroundStyle(.secondary)
 
+				TextField("Vocabulary hint (optional)", text: $settings.transcriptionPrompt, axis: .vertical)
+					.lineLimit(2...4)
+				Text("Helps spelling of names and terms. List participant names, product/company names, and any jargon - e.g. \"Зустріч українською. Сергій, Олег, Keystone, Obsidian, whisper.\"")
+					.font(.caption).foregroundStyle(.secondary)
+
 				HStack {
 					Picker("Download model", selection: $modelToDownload) {
 						ForEach(ModelDownloader.available, id: \.self) { Text($0).tag($0) }

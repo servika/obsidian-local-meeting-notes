@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.11.0] - 2026-06-19
+
+#### Added
+- **Vocabulary hint for transcription.** A new optional field (Settings →
+  Transcription) is passed to whisper as an initial prompt (carried across the
+  whole recording) to improve spelling of participant names, product/company
+  names, jargon, and to reinforce the spoken language - especially helpful for
+  Ukrainian.
+
 ### [0.10.0] - 2026-06-19
 
 #### Added

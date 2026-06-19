@@ -24,6 +24,7 @@ public enum Transcriber {
 		model: String,
 		whisperBin: String = "whisper-cli",
 		language: String = "auto",
+		prompt: String = "",
 		speaker: String,
 		progress: ((Double) -> Void)? = nil,
 		cancel: CancelToken? = nil,
@@ -49,9 +50,13 @@ public enum Transcriber {
 			["-f", "WAVE", "-d", "LEI16@16000", "-c", "1", src, wav16])
 
 		log("transcribing \(speaker) track…")
-		try runWhisper(resolveBinary(whisperBin),
-			["-m", modelPath, "-f", wav16, "-l", language, "-oj", "-pp", "-of", base],
-			cancel: cancel, progress: progress)
+		var args = ["-m", modelPath, "-f", wav16, "-l", language, "-oj", "-pp", "-of", base]
+		let hint = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+		if !hint.isEmpty {
+			// Bias spelling/vocabulary across the whole recording, not just the start.
+			args += ["--prompt", hint, "--carry-initial-prompt"]
+		}
+		try runWhisper(resolveBinary(whisperBin), args, cancel: cancel, progress: progress)
 
 		let jsonPath = base + ".json"
 		defer { try? FileManager.default.removeItem(atPath: jsonPath) }

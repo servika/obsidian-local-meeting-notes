@@ -11,6 +11,9 @@ final class AppSettings: ObservableObject {
 	@Published var language: String { didSet { d.set(language, forKey: "language") } }
 	/// Suggest starting a recording when another app starts using the mic.
 	@Published var suggestOnMeetingDetected: Bool { didSet { d.set(suggestOnMeetingDetected, forKey: "suggestOnMeetingDetected") } }
+	/// Optional initial prompt passed to whisper to bias spelling/vocabulary
+	/// (participant names, product/company terms, language). Improves accuracy.
+	@Published var transcriptionPrompt: String { didSet { d.set(transcriptionPrompt, forKey: "transcriptionPrompt") } }
 	@Published var summaryEngine: String { didSet { d.set(summaryEngine, forKey: "summaryEngine") } } // none|ollama|claude
 	@Published var ollamaURL: String { didSet { d.set(ollamaURL, forKey: "ollamaURL") } }
 	@Published var ollamaModel: String { didSet { d.set(ollamaModel, forKey: "ollamaModel") } }
@@ -29,6 +32,7 @@ final class AppSettings: ObservableObject {
 		whisperModelPath = d.string(forKey: "whisperModelPath") ?? "~/models/ggml-base.bin"
 		language = d.string(forKey: "language") ?? "auto"
 		suggestOnMeetingDetected = (d.object(forKey: "suggestOnMeetingDetected") as? Bool) ?? true
+		transcriptionPrompt = d.string(forKey: "transcriptionPrompt") ?? ""
 		summaryEngine = d.string(forKey: "summaryEngine") ?? "ollama"
 		ollamaURL = d.string(forKey: "ollamaURL") ?? "http://localhost:11434"
 		ollamaModel = d.string(forKey: "ollamaModel") ?? ""

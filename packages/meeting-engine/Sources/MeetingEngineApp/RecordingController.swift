@@ -153,12 +153,13 @@ final class RecordingController: ObservableObject {
 	private func transcribeAndSummarize(systemWav: String, micWav: String, cancel: CancelToken) throws -> (transcript: String, summary: String) {
 		let lang = settings.language.isEmpty ? "auto" : settings.language
 		let model = (settings.modelPath(for: lang) as NSString).expandingTildeInPath
+		let hint = settings.transcriptionPrompt
 		let setProgress: (Double) -> Void = { p in DispatchQueue.main.async { self.progress = p } }
 
 		DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
-		let them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, speaker: "Them",
+		let them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, prompt: hint, speaker: "Them",
 			progress: { setProgress(0.05 + $0 * 0.45) }, cancel: cancel, log: { _ in })
-		let you = try Transcriber.transcribe(wavPath: micWav, model: model, language: lang, speaker: "You",
+		let you = try Transcriber.transcribe(wavPath: micWav, model: model, language: lang, prompt: hint, speaker: "You",
 			progress: { setProgress(0.50 + $0 * 0.40) }, cancel: cancel, log: { _ in })
 		let transcript = Transcriber.diarizedMarkdown(them + you)
 
