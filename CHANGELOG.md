@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.20.2] - 2026-06-19
+
+#### Fixed
+- **Prompt improvements had no effect for some users.** A legacy `summaryPrompt`
+  setting was migrated onto the active model on every launch, silently shadowing
+  the (much-improved) built-in prompts - so summaries stayed 2-section/English no
+  matter what. Removed the legacy migration and the stale key; per-model prompts
+  now come from the baked defaults unless you explicitly edit one in Settings.
+
 ### [0.20.1] - 2026-06-19
 
 #### Fixed

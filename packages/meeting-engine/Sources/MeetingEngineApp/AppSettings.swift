@@ -38,13 +38,12 @@ final class AppSettings: ObservableObject {
 		ollamaModel = d.string(forKey: "ollamaModel") ?? ""
 		claudeAPIKey = d.string(forKey: "claudeAPIKey") ?? ""
 		claudeModel = d.string(forKey: "claudeModel") ?? "claude-opus-4-8"
-		var overrides = (d.dictionary(forKey: "promptOverrides") as? [String: String]) ?? [:]
-		// Migrate a legacy single prompt onto the current model.
-		if overrides.isEmpty, let legacy = d.string(forKey: "summaryPrompt"), !legacy.isEmpty {
-			let key = (d.string(forKey: "summaryEngine") == "claude") ? (d.string(forKey: "claudeModel") ?? "claude-opus-4-8") : (d.string(forKey: "ollamaModel") ?? "")
-			if !key.isEmpty { overrides[key] = legacy }
-		}
-		promptOverrides = overrides
+		promptOverrides = (d.dictionary(forKey: "promptOverrides") as? [String: String]) ?? [:]
+		// Drop a stale legacy single prompt if present. We no longer migrate it onto
+		// a model - it shadowed the (now much better) baked defaults, so an old
+		// 2-section prompt kept overriding new ones. Per-model prompts live in
+		// `promptOverrides` and are only set when the user edits a prompt.
+		d.removeObject(forKey: "summaryPrompt")
 		modelByLanguage = (d.dictionary(forKey: "modelByLanguage") as? [String: String]) ?? [:]
 	}
 
