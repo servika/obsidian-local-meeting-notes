@@ -20,6 +20,11 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Summary quality
 
+- **Map-reduce summarization for very long meetings.**
+  `num_ctx` now fits typical meetings (capped at 32k tokens ≈ ~1 hour). Beyond
+  that the transcript still won't fit in one pass, so summaries would again miss
+  parts. Chunk the transcript → summarize each chunk → combine, for even coverage
+  regardless of length (also lets smaller local models handle long meetings).
 - **Meeting category (1:1, daily sync, planning, …).**
   Add a `category:` frontmatter field (NOT `type:` - that's already
   `type: meeting`). Levels, in order of value:

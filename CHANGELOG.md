@@ -13,6 +13,21 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.20.0] - 2026-06-19
+
+#### Fixed
+- **Summaries only covered the end of long meetings.** Ollama defaults to a tiny
+  context window (~2k tokens) and silently truncates the prompt to its end, so
+  long transcripts lost their beginning (and key early decisions/action items).
+  We now size `num_ctx` to fit the whole transcript. Verified: a 9.4k-token
+  meeting that previously dropped the early "token economy / $250 limit" topic
+  now surfaces it, with the right action items.
+
+#### Changed
+- Strengthened the Qwen summary prompt: cover the whole meeting evenly, preserve
+  amounts/limits/dates/owners, keep names exactly as spoken, and never invent
+  dates/numbers (only include a deadline if explicitly stated).
+
 ### [0.19.0] - 2026-06-19
 
 #### Changed

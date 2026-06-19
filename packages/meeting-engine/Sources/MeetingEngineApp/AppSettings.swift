@@ -179,15 +179,16 @@ final class AppSettings: ObservableObject {
 	One or two short paragraphs covering who met, the main topics, the key decisions, and the outcome.
 
 	## Topics discussed
-	For each distinct topic raised, write a "### " subheading naming the topic, then 1-3 short paragraphs (use bullet points where helpful) describing what was said or decided.
+	For each distinct topic raised, write a "### " subheading naming the topic, then 1-3 short paragraphs (use bullet points where helpful) describing what was said or decided. Cover the ENTIRE meeting evenly - beginning, middle, and end - not just the last part. Preserve every concrete detail: amounts (e.g. $250), limits, dates, deadlines, and the names of who is responsible.
 
 	## Action items
-	A checkbox list using UNCHECKED boxes: "- [ ] <task> - <owner>" (use "Owner TBD" if unassigned). If there are none, write exactly "- None identified."
+	A checkbox list using UNCHECKED boxes: "- [ ] <task> - <owner> - <deadline>" (use "Owner TBD" if unassigned; include the deadline only if it is explicitly stated). Capture EVERY commitment or decision in the transcript, with its specifics. If there are none, write exactly "- None identified."
 
 	Strict rules:
 	- ALWAYS produce all four sections, even if the transcript is short, messy, or fragmented. Do your best with whatever content is present.
 	- NEVER ask for clarification, NEVER refuse, and NEVER add any preamble, closing remarks, or commentary about the transcript's quality. Output only the four sections.
-	- Use only information present in the transcript; do not invent names, numbers, or decisions.
+	- Use only information present in the transcript; never invent names, numbers, amounts, or dates. If a deadline wasn't stated, omit it rather than guessing.
+	- Use names exactly as they appear in the transcript; do not translate or normalize them.
 	- Write the notes in the same language as the transcript.
 
 	Transcript:

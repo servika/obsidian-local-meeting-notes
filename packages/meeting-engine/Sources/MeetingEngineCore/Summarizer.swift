@@ -48,11 +48,19 @@ public enum Summarizer {
 		guard let u = URL(string: endpoint) else { throw SummaryError("bad Ollama URL: \(url)") }
 		// temperature 0 → deterministic output, so the model reliably emits every
 		// required section instead of occasionally dropping one.
+		//
+		// num_ctx: Ollama defaults to a tiny context (~2k tokens) and silently
+		// truncates the prompt to the *end*, which drops the start of long
+		// transcripts (summaries then only cover the last part). Size the window
+		// to fit the whole prompt - estimate ~2.5 chars/token (conservative for
+		// Cyrillic) plus headroom for the output, clamped to a sane range.
+		let estTokens = prompt.count / 2 + 2048
+		let numCtx = min(32768, max(8192, estTokens))
 		let body: [String: Any] = [
 			"model": model,
 			"prompt": prompt,
 			"stream": false,
-			"options": ["temperature": 0],
+			"options": ["temperature": 0, "num_ctx": numCtx],
 		]
 		let data = try post(u, headers: ["Content-Type": "application/json"], json: body)
 		guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
