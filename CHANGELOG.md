@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.17.1] - 2026-06-19
+
+#### Fixed
+- **Empty Summary tab regression from 0.17.0.** The new `## Audio` section
+  defeated the fallback that surfaces a heading-less summary, so summaries the
+  model wrote under `###`/plain text vanished. The fallback now ignores the
+  Audio (and Transcript) sections. Also render `####` headings and numbered
+  lists in summaries instead of raw Markdown.
+
 ### [0.17.0] - 2026-06-19
 
 #### Added

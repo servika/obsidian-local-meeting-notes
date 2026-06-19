@@ -467,26 +467,49 @@ struct NoteView: View {
 		return result
 	}
 
-	/// Renders paragraphs, `### ` sub-headings (e.g. topic blocks), and `- ` bullets.
+	/// Renders paragraphs, `#`-headings, `- `/`* ` bullets, and `1.` numbered lists.
 	@ViewBuilder
 	private func richText(_ lines: [String]) -> some View {
 		VStack(alignment: .leading, spacing: 6) {
 			ForEach(Array(lines.enumerated()), id: \.offset) { _, raw in
 				let line = raw.trimmingCharacters(in: .whitespaces)
-				if line.hasPrefix("### ") {
-					Text(line.dropFirst(4))
+				if let heading = headingText(line) {
+					Text(heading)
 						.font(.subheadline.weight(.semibold))
 						.padding(.top, 4)
-				} else if line.hasPrefix("- ") {
+				} else if line.hasPrefix("- ") || line.hasPrefix("* ") {
 					HStack(alignment: .firstTextBaseline, spacing: 8) {
 						Text("•").foregroundStyle(.secondary)
 						inline(String(line.dropFirst(2)))
+					}
+				} else if let (num, rest) = numberedItem(line) {
+					HStack(alignment: .firstTextBaseline, spacing: 8) {
+						Text(num).foregroundStyle(.secondary).monospacedDigit()
+						inline(rest)
 					}
 				} else if !line.isEmpty {
 					inline(line)
 				}
 			}
 		}
+	}
+
+	/// Strip a leading run of `#` (a Markdown heading) and return the text, or nil.
+	private func headingText(_ line: String) -> String? {
+		guard line.hasPrefix("#") else { return nil }
+		let hashes = line.prefix(while: { $0 == "#" })
+		let after = line.dropFirst(hashes.count)
+		guard after.hasPrefix(" ") else { return nil }
+		return String(after).trimmingCharacters(in: .whitespaces)
+	}
+
+	/// Parse a `1. text` / `1) text` numbered-list item into (number, text).
+	private func numberedItem(_ line: String) -> (String, String)? {
+		let digits = line.prefix(while: { $0.isNumber })
+		guard !digits.isEmpty else { return nil }
+		let after = line.dropFirst(digits.count)
+		guard after.hasPrefix(". ") || after.hasPrefix(") ") else { return nil }
+		return ("\(digits).", String(after.dropFirst(2)))
 	}
 
 	@ViewBuilder
@@ -591,7 +614,13 @@ struct NoteView: View {
 		// Summary tab. Surface it as a Summary section (only when there isn't a
 		// real summary section already).
 		let lead = trimEdges(preamble)
-		if !lead.isEmpty, !result.contains(where: { $0.title.lowercased() != "transcript" }) {
+		// "transcript" and "audio" aren't summary content, so if those are the only
+		// real sections, treat the preamble as the summary.
+		let hasSummarySection = result.contains {
+			let t = $0.title.lowercased()
+			return t != "transcript" && t != "audio"
+		}
+		if !lead.isEmpty, !hasSummarySection {
 			result.insert(Section(title: "Summary", lines: lead), at: 0)
 		}
 		return result
