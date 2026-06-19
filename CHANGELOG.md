@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.21.1] - 2026-06-19
+
+#### Fixed
+- **Processing bar showed on the wrong meeting.** While one meeting was
+  regenerating, selecting a different meeting also displayed the progress bar.
+  The busy state is now scoped to the meeting actually being processed
+  (`controller.activeID == meeting.id`).
+
 ### [0.21.0] - 2026-06-19
 
 #### Added

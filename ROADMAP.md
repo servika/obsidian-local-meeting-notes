@@ -10,12 +10,10 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Known bugs
 
-- **Processing bar shows on the wrong meeting.** While a meeting is
-  regenerating, selecting a *different* meeting also shows the "processing"
-  progress bar on it. Cause: `MeetingDetail` gates the busy UI on the global
-  `controller.busy` instead of checking that the row is the one being processed.
-  Fix: only show the processing bar when `meeting.id == controller.activeID`
-  (and pass `busy` accordingly).
+_None currently._
+
+(Fixed: "processing bar showed on the wrong meeting" - 0.21.1 scopes the busy UI
+to `controller.activeID == meeting.id`.)
 
 ## Distribution & packaging
 

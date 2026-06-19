@@ -84,10 +84,13 @@ struct ContentView: View {
 			.navigationSplitViewColumnWidth(min: 250, ideal: 290)
 		} detail: {
 			if let id = selection, let meeting = store.meetings.first(where: { $0.id == id }) {
+				// Only show processing state on the meeting actually being processed,
+				// not whichever one happens to be selected.
+				let isProcessingThis = controller.busy && controller.activeID == meeting.id
 				MeetingDetail(
 					meeting: meeting,
 					content: store.content(of: meeting),
-					busy: controller.busy,
+					busy: isProcessingThis,
 					progress: controller.progress,
 					status: controller.status,
 					eta: controller.remaining,
