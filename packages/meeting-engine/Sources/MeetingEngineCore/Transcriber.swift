@@ -99,14 +99,16 @@ public enum Transcriber {
 		var paragraph = ""
 		var firstOfTurn = true
 		var lastEnd = 0.0
+		var paragraphStart = 0.0
 
-		// Emit the current paragraph: the first paragraph of a turn carries the
-		// speaker label; later paragraphs of the same turn are unlabeled
-		// continuations (rendered indented under the speaker).
+		// Emit the current paragraph, prefixed with its start time. The first
+		// paragraph of a turn also carries the speaker label; later paragraphs of
+		// the same turn are unlabeled continuations (rendered under the speaker).
 		func endParagraph() {
 			let t = paragraph.trimmingCharacters(in: .whitespaces)
 			if !t.isEmpty {
-				blocks.append(firstOfTurn ? "**\(speaker):** \(t)" : t)
+				let label = firstOfTurn ? "**\(speaker):** " : ""
+				blocks.append("[\(timestamp(paragraphStart))] \(label)\(t)")
 				firstOfTurn = false
 			}
 			paragraph = ""
@@ -128,11 +130,20 @@ public enum Transcriber {
 					endParagraph()
 				}
 			}
+			if paragraph.isEmpty { paragraphStart = seg.start }
 			paragraph += (paragraph.isEmpty ? "" : " ") + text
 			lastEnd = seg.end
 		}
 		endParagraph()
 		return blocks.joined(separator: "\n\n")
+	}
+
+	/// Format a time offset (seconds from the start) as `m:ss`, or `h:mm:ss` past
+	/// an hour.
+	private static func timestamp(_ seconds: Double) -> String {
+		let s = max(0, Int(seconds.rounded()))
+		let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
+		return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
 	}
 
 	/// Resolve a bare command to an absolute path. The app, launched via

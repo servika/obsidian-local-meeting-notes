@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.15.0] - 2026-06-19
+
+#### Added
+- **Transcript timeline.** Each turn/paragraph is now timestamped (`[m:ss]` from
+  the meeting start), so you can see when - and who - said something. The app
+  shows the times in a left gutter beside the speaker; the markdown note carries
+  them inline. Applies to new transcripts and re-generations.
+
 ### [0.14.0] - 2026-06-19
 
 #### Changed

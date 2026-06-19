@@ -498,21 +498,28 @@ struct NoteView: View {
 
 	@ViewBuilder
 	private func transcriptLine(_ line: String) -> some View {
-		if let (speaker, rest) = speakerSplit(line) {
+		let (time, afterTime) = splitTimestamp(line)
+		if let (speaker, rest) = speakerSplit(afterTime) {
 			HStack(alignment: .top, spacing: 10) {
-				Text(speaker)
-					.font(.caption2.weight(.semibold))
-					.foregroundStyle(.white)
-					.padding(.horizontal, 7).padding(.vertical, 2)
-					.background(speaker == "You" ? brand : Color.gray, in: Capsule())
-					.frame(width: 54, alignment: .leading)
+				VStack(alignment: .leading, spacing: 2) {
+					Text(speaker)
+						.font(.caption2.weight(.semibold))
+						.foregroundStyle(.white)
+						.padding(.horizontal, 7).padding(.vertical, 2)
+						.background(speaker == "You" ? brand : Color.gray, in: Capsule())
+					if let time { Text(time).font(.caption2).monospacedDigit().foregroundStyle(.secondary) }
+				}
+				.frame(width: 54, alignment: .leading)
 				inline(rest).frame(maxWidth: .infinity, alignment: .leading)
 			}
 		} else {
-			// Continuation paragraph of the same speaker - indent under their text.
-			inline(line)
-				.frame(maxWidth: .infinity, alignment: .leading)
-				.padding(.leading, 64)
+			// Continuation paragraph of the same speaker: timestamp gutter + text.
+			HStack(alignment: .top, spacing: 10) {
+				Text(time ?? "")
+					.font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+					.frame(width: 54, alignment: .leading)
+				inline(afterTime).frame(maxWidth: .infinity, alignment: .leading)
+			}
 		}
 	}
 
@@ -522,6 +529,15 @@ struct NoteView: View {
 			if line.hasPrefix(p) { return (s, String(line.dropFirst(p.count)).trimmingCharacters(in: .whitespaces)) }
 		}
 		return nil
+	}
+
+	/// Pull a leading `[m:ss]` / `[h:mm:ss]` timestamp off a transcript line.
+	private func splitTimestamp(_ line: String) -> (String?, String) {
+		guard line.hasPrefix("["), let close = line.firstIndex(of: "]") else { return (nil, line) }
+		let ts = String(line[line.index(after: line.startIndex)..<close])
+		guard ts.contains(":"), ts.allSatisfy({ $0.isNumber || $0 == ":" }) else { return (nil, line) }
+		let rest = String(line[line.index(after: close)...]).trimmingCharacters(in: .whitespaces)
+		return (ts, rest)
 	}
 
 	private func inline(_ s: String) -> Text {
