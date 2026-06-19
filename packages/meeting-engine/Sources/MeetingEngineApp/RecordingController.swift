@@ -21,6 +21,9 @@ final class RecordingController: ObservableObject {
 	private var stamp = ""
 	private var procTimer: Timer?
 	private var procStart: Date?
+	/// Estimated total processing time for the current run (seconds); the UI shows
+	/// it counting down. 0 = unknown.
+	private var estimatedTotal: TimeInterval = 0
 	private var cancelToken: CancelToken?
 	private let settings: AppSettings
 	private let store: MeetingStore
@@ -87,6 +90,8 @@ final class RecordingController: ObservableObject {
 			let result = r.stop()
 			DispatchQueue.main.async { self.systemLevel = 0; self.micLevel = 0 }
 
+			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
+			self.beginEstimate(audioSeconds: result.duration, model: estModel)
 			let audioBase = "recordings/Meeting \(stamp)"
 			// Follow a rename made during recording: find the placeholder note by
 			// its audio link rather than reconstructing the original filename, so
@@ -98,6 +103,7 @@ final class RecordingController: ObservableObject {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, cancel: token)
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
+				Self.recordRate(audioSeconds: result.duration, model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)")
 			} catch is CancelledError {
 				// Keep the recording as a re-generatable note.
@@ -139,10 +145,13 @@ final class RecordingController: ObservableObject {
 				self.finish(status: "No saved audio found for this meeting.")
 				return
 			}
+			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
+			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, cancel: token)
 				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
+				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Re-generated \(title)")
 			} catch is CancelledError {
 				self.finish(status: "Stopped. The existing note is unchanged.")
@@ -262,16 +271,48 @@ final class RecordingController: ObservableObject {
 			guard let self = self, let start = self.procStart else { return }
 			let e = Date().timeIntervalSince(start)
 			self.elapsed = Self.shortTime(e)
-			// Extrapolate remaining from progress once there's enough signal to be
-			// meaningful (the pipeline starts at 0.05 and ends at 1.0).
-			let p = self.progress
-			if p > 0.1, p < 0.99 {
-				let rem = e / p - e
-				self.remaining = rem > 1 ? "~\(Self.shortTime(rem)) left" : ""
+			// Count down from the up-front estimate (covers transcription + the
+			// opaque summary phase, and self-calibrates over time).
+			if self.estimatedTotal > 0 {
+				let rem = self.estimatedTotal - e
+				self.remaining = rem > 2 ? "~\(Self.shortTime(rem)) left" : "finishing…"
 			} else {
 				self.remaining = ""
 			}
 		}
+	}
+
+	// MARK: processing-time estimate (learned per transcription model)
+
+	/// Set the up-front estimate from the audio length and the model's learned
+	/// (or seeded) end-to-end processing rate.
+	private func beginEstimate(audioSeconds: Double, model: String) {
+		let est = audioSeconds * Self.processingRate(forModel: model)
+		DispatchQueue.main.async { self.estimatedTotal = est }
+	}
+
+	/// Update the learned rate (processing seconds per audio second) for a model.
+	private static func recordRate(audioSeconds: Double, model: String, processingSeconds: Double) {
+		guard audioSeconds > 1, processingSeconds > 0 else { return }
+		let key = rateKey(model)
+		let new = processingSeconds / audioSeconds
+		let prev = UserDefaults.standard.double(forKey: key)
+		UserDefaults.standard.set(prev > 0 ? prev * 0.6 + new * 0.4 : new, forKey: key)
+	}
+
+	private static func processingRate(forModel model: String) -> Double {
+		let stored = UserDefaults.standard.double(forKey: rateKey(model))
+		if stored > 0 { return stored }
+		let m = model.lowercased()
+		if m.contains("large") { return 1.5 }
+		if m.contains("medium") { return 1.0 }
+		if m.contains("small") { return 0.5 }
+		if m.contains("tiny") { return 0.1 }
+		return 0.25 // base, or unknown
+	}
+
+	private static func rateKey(_ model: String) -> String {
+		"procRate." + (model as NSString).lastPathComponent
 	}
 
 	/// Compact duration like `45s`, `2m 05s`, `1h 03m`.
@@ -286,6 +327,7 @@ final class RecordingController: ObservableObject {
 		procTimer?.invalidate()
 		procTimer = nil
 		remaining = ""
+		estimatedTotal = 0
 	}
 
 	private static func timestamp() -> String {

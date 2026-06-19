@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.19.0] - 2026-06-19
+
+#### Changed
+- **Better processing time estimate.** The "time left" is now an up-front
+  estimate from the audio length × a learned per-model rate (self-calibrating),
+  shown counting down from the start - and it covers the summary phase too. This
+  replaces the 0.18.0 progress-based ETA, which sat near the end during the
+  (opaque) summary step.
+
 ### [0.18.0] - 2026-06-19
 
 #### Added

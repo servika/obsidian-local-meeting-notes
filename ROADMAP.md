@@ -78,13 +78,12 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
  
 ## Security & polish
 
-- **Estimate transcription time (ETA).**
-  - ✅ **Live ETA** shipped in 0.18.0 - remaining time extrapolated from progress
-    (`elapsed / progress`), refined each second, shown in the record panel and
-    the meeting processing bar.
-  - Possible follow-up: a **pre-start estimate** from audio duration × a learned
-    per-model throughput. Less reliable now that VAD skips non-speech (processing
-    time tracks speech amount, not file length), so treat as approximate.
+- ✅ **Estimate transcription time (ETA).** Shipped. An up-front estimate from
+  audio length × a **learned per-model end-to-end rate** (self-calibrating EMA,
+  seeded by model size), shown counting down in the record panel and the meeting
+  processing bar - covers transcription *and* the opaque summary phase. Replaced
+  the 0.18.0 progress-extrapolation ETA, which couldn't see the summary phase.
+  Rates persist in UserDefaults (`procRate.<model>`).
 - **Keychain for the Claude API key.**
   Currently stored in UserDefaults as plaintext; move it to the Keychain.
 - **Add more meeting languages.**
