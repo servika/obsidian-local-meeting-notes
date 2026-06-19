@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.21.0] - 2026-06-19
+
+#### Added
+- **Hardware-based model recommendations.** Settings now suggests a whisper model
+  (Transcription) and a local summary model (Summary) sized to your Mac's RAM -
+  e.g. `large-v3` + `qwen2.5:14b` on 32 GB, `large-v3-turbo` + `qwen2.5:7b` on
+  16 GB - with the `ollama pull` command to copy. On low-RAM Macs it points to
+  Claude for best quality without local memory limits.
+
 ### [0.20.2] - 2026-06-19
 
 #### Fixed

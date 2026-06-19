@@ -18,6 +18,31 @@ struct SettingsView: View {
 		modelFileExists(settings.whisperModelPath)
 	}
 
+	// MARK: hardware-based recommendations
+
+	/// Installed physical memory, rounded to GB.
+	private var systemRAMGB: Int {
+		Int((Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824).rounded())
+	}
+
+	/// Recommended whisper model for this Mac's RAM (multilingual; balances
+	/// accuracy vs. memory/speed).
+	private var recommendedWhisperModel: String {
+		let gb = systemRAMGB
+		if gb >= 24 { return "large-v3" }
+		if gb >= 12 { return "large-v3-turbo" }
+		return "small"
+	}
+
+	/// Recommended local (Ollama) summary model for this Mac's RAM.
+	private var recommendedOllamaModel: String {
+		let gb = systemRAMGB
+		if gb >= 48 { return "qwen2.5:32b" }
+		if gb >= 24 { return "qwen2.5:14b" }
+		if gb >= 12 { return "qwen2.5:7b" }
+		return "qwen2.5:3b"
+	}
+
 	private func modelFileExists(_ path: String) -> Bool {
 		let p = (path as NSString).expandingTildeInPath
 		return !p.isEmpty && FileManager.default.fileExists(atPath: p)
@@ -154,6 +179,8 @@ struct SettingsView: View {
 				Text(modelInfo(modelToDownload))
 					.font(.caption).foregroundStyle(.secondary)
 					.fixedSize(horizontal: false, vertical: true)
+				Label("Recommended for your \(systemRAMGB) GB Mac: \(recommendedWhisperModel)", systemImage: "sparkles")
+					.font(.caption).foregroundStyle(brand)
 				if downloader.isDownloading {
 					ProgressView(value: downloader.progress).progressViewStyle(.linear)
 					Text("\(downloader.message)  \(Int(downloader.progress * 100))%")
@@ -226,6 +253,13 @@ struct SettingsView: View {
 							.labelsHidden().frame(width: 170)
 						}
 						Button("Refresh", action: refreshOllama)
+					}
+					Label("Recommended for your \(systemRAMGB) GB Mac: \(recommendedOllamaModel)  ·  run: ollama pull \(recommendedOllamaModel)", systemImage: "sparkles")
+						.font(.caption).foregroundStyle(brand)
+						.textSelection(.enabled)
+					if systemRAMGB < 12 {
+						Text("On low-RAM Macs, Claude (above) gives the best quality without local memory limits.")
+							.font(.caption).foregroundStyle(.secondary)
 					}
 				}
 
