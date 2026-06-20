@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.21.4] - 2026-06-20
+
+#### Changed
+- **Clear message when Ollama isn't installed/running.** Recording and
+  transcription work without Ollama (only the AI summary needs it); if Ollama is
+  unreachable, the summary is skipped with an actionable message (install from
+  ollama.com + `ollama pull …`, or switch the Summary engine to Claude/None)
+  instead of a raw network error.
+
 ### [0.21.3] - 2026-06-20
 
 #### Changed

@@ -66,7 +66,12 @@ public enum Summarizer {
 			// RAM and heat up the machine between meetings.
 			"keep_alive": 0,
 		]
-		let data = try post(u, headers: ["Content-Type": "application/json"], json: body)
+		let data: Data
+		do {
+			data = try post(u, headers: ["Content-Type": "application/json"], json: body)
+		} catch let e as URLError where [.cannotConnectToHost, .cannotFindHost, .timedOut, .networkConnectionLost].contains(e.code) {
+			throw SummaryError("Can't reach Ollama at \(url). Install it from ollama.com and run a model (e.g. `ollama pull \(model.isEmpty ? "qwen2.5:7b" : model)`), or set the Summary engine to Claude or None in Settings.")
+		}
 		guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
 			throw SummaryError("unexpected Ollama response")
 		}
