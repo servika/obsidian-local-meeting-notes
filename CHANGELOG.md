@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.21.3] - 2026-06-20
+
+#### Changed
+- **Free the summary model after use.** The Ollama request now sends
+  `keep_alive: 0`, so the model is unloaded from memory right after summarizing
+  instead of staying resident (Ollama's 5-minute default) - less idle RAM/heat
+  between meetings.
+
 ### [0.21.2] - 2026-06-20
 
 #### Changed

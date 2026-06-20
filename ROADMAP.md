@@ -15,6 +15,10 @@ _None currently._
 (Fixed: "processing bar showed on the wrong meeting" - 0.21.1 scopes the busy UI
 to `controller.activeID == meeting.id`.)
 
+(Fixed: "model stays in memory after processing" - 0.21.3 sends `keep_alive: 0`
+so Ollama unloads the summary model right after summarizing; whisper-cli already
+exits after each transcription.)
+
 ## Distribution & packaging
 
 - **Developer ID signing + notarization + DMG.**

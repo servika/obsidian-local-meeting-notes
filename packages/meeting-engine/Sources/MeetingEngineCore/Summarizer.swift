@@ -61,6 +61,10 @@ public enum Summarizer {
 			"prompt": prompt,
 			"stream": false,
 			"options": ["temperature": 0, "num_ctx": numCtx],
+			// Unload the model from memory right after summarizing instead of
+			// keeping it resident (Ollama's default is 5 min), so it doesn't sit in
+			// RAM and heat up the machine between meetings.
+			"keep_alive": 0,
 		]
 		let data = try post(u, headers: ["Content-Type": "application/json"], json: body)
 		guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
