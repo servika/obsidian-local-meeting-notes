@@ -31,11 +31,13 @@ exits after each transcription.)
 
 ## Summary quality
 
-- **Map-reduce summarization for very long meetings.**
-  `num_ctx` now fits typical meetings (capped at 32k tokens ≈ ~1 hour). Beyond
-  that the transcript still won't fit in one pass, so summaries would again miss
-  parts. Chunk the transcript → summarize each chunk → combine, for even coverage
-  regardless of length (also lets smaller local models handle long meetings).
+- ✅ **Map-reduce summarization for long meetings.** Shipped in 0.22.0.
+  Transcripts over ~40k chars are split into ~24k-char chunks (fits even modest
+  context windows), each summarized into partial notes (map), then combined into
+  the final summary (reduce). Even coverage regardless of length, and smaller
+  models can handle long meetings. The model is kept loaded between chunks
+  (`keep_alive` during map) and unloaded after the final pass. Possible
+  follow-up: recursive reduce if the combined partials themselves get large.
 - **Meeting category (1:1, daily sync, planning, …).**
   Add a `category:` frontmatter field (NOT `type:` - that's already
   `type: meeting`). Levels, in order of value:

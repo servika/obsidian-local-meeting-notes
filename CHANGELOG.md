@@ -13,6 +13,14 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.22.0] - 2026-06-20
+
+#### Added
+- **Map-reduce summarization for long meetings.** Transcripts over ~40k chars are
+  chunked (~24k each), summarized per chunk, then combined into the final summary
+  - so coverage stays even on long meetings and smaller models can handle them.
+  The model stays loaded between chunks and unloads after the final pass.
+
 ### [0.21.4] - 2026-06-20
 
 #### Changed

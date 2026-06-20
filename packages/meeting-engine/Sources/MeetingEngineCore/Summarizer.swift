@@ -28,21 +28,82 @@ public enum Summarizer {
 	{{transcript}}
 	"""
 
+	/// Transcripts longer than this (chars) are summarized via map-reduce instead
+	/// of one pass, so coverage stays even and the chunks fit even smaller models.
+	static let mapReduceThresholdChars = 40_000
+	/// Per-chunk size in the map phase (~12k tokens - fits modest context windows).
+	static let chunkChars = 24_000
+
 	public static func summarize(transcript: String, prompt: String, engine: SummaryEngine) throws -> String {
-		let filled = prompt.contains("{{transcript}}")
-			? prompt.replacingOccurrences(of: "{{transcript}}", with: transcript)
-			: "\(prompt)\n\n\(transcript)"
-		switch engine {
-		case let .ollama(url, model):
-			return try ollama(filled, url: url, model: model)
-		case let .claude(apiKey, model):
-			return try claude(filled, apiKey: apiKey, model: model)
+		// Short/medium meetings: one pass (fast).
+		if transcript.count <= mapReduceThresholdChars {
+			return try run(fill(prompt, with: transcript), engine: engine, keepAlive: 0)
 		}
+
+		// Long meetings: map-reduce. Summarize each chunk into partial notes (model
+		// kept loaded between chunks), then combine those into the final summary.
+		let chunks = chunkText(transcript, maxChars: chunkChars)
+		var partials: [String] = []
+		for (i, chunk) in chunks.enumerated() {
+			let mapped = try run(mapPrompt(chunk: chunk, part: i + 1, total: chunks.count),
+				engine: engine, keepAlive: 300)
+			if !mapped.isEmpty { partials.append("## Part \(i + 1) of \(chunks.count)\n\(mapped)") }
+		}
+		let combined = partials.joined(separator: "\n\n")
+		return try run(fill(prompt, with: combined), engine: engine, keepAlive: 0)
+	}
+
+	/// Substitute the transcript/notes into a prompt (or append if no placeholder).
+	private static func fill(_ prompt: String, with text: String) -> String {
+		prompt.contains("{{transcript}}")
+			? prompt.replacingOccurrences(of: "{{transcript}}", with: text)
+			: "\(prompt)\n\n\(text)"
+	}
+
+	private static func run(_ prompt: String, engine: SummaryEngine, keepAlive: Int) throws -> String {
+		switch engine {
+		case let .ollama(url, model): return try ollama(prompt, url: url, model: model, keepAlive: keepAlive)
+		case let .claude(apiKey, model): return try claude(prompt, apiKey: apiKey, model: model)
+		}
+	}
+
+	/// Concise per-chunk extraction prompt for the map phase.
+	private static func mapPrompt(chunk: String, part: Int, total: Int) -> String {
+		"""
+		This is part \(part) of \(total) of a meeting transcript (lines labeled You/Them; speech-recognition output). Extract the notable content from THIS part only, as concise Markdown bullet points: key discussion points, decisions, concrete numbers/amounts/dates/limits, named owners, and any action items (with owner and deadline if stated). No intro or conclusion. Write in the same language as the transcript.
+
+		Transcript part:
+		\(chunk)
+		"""
+	}
+
+	/// Split text into <= maxChars chunks, breaking on blank lines where possible.
+	private static func chunkText(_ text: String, maxChars: Int) -> [String] {
+		var chunks: [String] = []
+		var current = ""
+		for para in text.components(separatedBy: "\n\n") {
+			if current.isEmpty {
+				current = para
+			} else if current.count + para.count + 2 <= maxChars {
+				current += "\n\n" + para
+			} else {
+				chunks.append(current)
+				current = para
+			}
+			// A single oversized paragraph: hard-split it.
+			while current.count > maxChars {
+				let idx = current.index(current.startIndex, offsetBy: maxChars)
+				chunks.append(String(current[..<idx]))
+				current = String(current[idx...])
+			}
+		}
+		if !current.isEmpty { chunks.append(current) }
+		return chunks
 	}
 
 	// MARK: Ollama
 
-	private static func ollama(_ prompt: String, url: String, model: String) throws -> String {
+	private static func ollama(_ prompt: String, url: String, model: String, keepAlive: Int = 0) throws -> String {
 		guard !model.isEmpty else { throw SummaryError("no Ollama model set") }
 		let endpoint = url.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/generate"
 		guard let u = URL(string: endpoint) else { throw SummaryError("bad Ollama URL: \(url)") }
@@ -61,10 +122,10 @@ public enum Summarizer {
 			"prompt": prompt,
 			"stream": false,
 			"options": ["temperature": 0, "num_ctx": numCtx],
-			// Unload the model from memory right after summarizing instead of
-			// keeping it resident (Ollama's default is 5 min), so it doesn't sit in
-			// RAM and heat up the machine between meetings.
-			"keep_alive": 0,
+			// Unload the model after use (keep_alive 0) so it doesn't sit in RAM and
+			// heat up the machine; during map-reduce we pass a short keep_alive to
+			// keep it loaded between chunks, then 0 on the final call.
+			"keep_alive": keepAlive,
 		]
 		let data: Data
 		do {
