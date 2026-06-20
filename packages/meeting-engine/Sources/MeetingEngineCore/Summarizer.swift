@@ -29,10 +29,12 @@ public enum Summarizer {
 	"""
 
 	/// Transcripts longer than this (chars) are summarized via map-reduce instead
-	/// of one pass, so coverage stays even and the chunks fit even smaller models.
-	static let mapReduceThresholdChars = 40_000
-	/// Per-chunk size in the map phase (~12k tokens - fits modest context windows).
-	static let chunkChars = 24_000
+	/// of one pass. Set near what fits a 32k-token context (~3.4 chars/token for
+	/// Cyrillic, ~110k chars; we leave headroom), so map-reduce only kicks in for
+	/// genuinely long meetings - triggering it earlier hurts coverage vs one pass.
+	static let mapReduceThresholdChars = 90_000
+	/// Per-chunk size in the map phase (~18k tokens - comfortably fits 32k models).
+	static let chunkChars = 60_000
 
 	public static func summarize(transcript: String, prompt: String, engine: SummaryEngine) throws -> String {
 		// Short/medium meetings: one pass (fast).

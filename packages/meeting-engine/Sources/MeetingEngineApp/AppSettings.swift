@@ -185,7 +185,7 @@ final class AppSettings: ObservableObject {
 
 	Rules:
 	- NEVER refuse, ask for clarification, or add any preamble or closing remarks. Output only the four sections.
-	- Write ALL content in {{language}}.
+	- Keep the four section headings EXACTLY in English as written above (## Short summary, ## Summary, ## Topics discussed, ## Action items). Write the body text in {{language}}.
 	- Use names exactly as spoken; never translate or invent names, numbers, amounts, or dates.
 
 	Transcript:

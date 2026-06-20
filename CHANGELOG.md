@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.22.1] - 2026-06-20
+
+#### Fixed
+- **Map-reduce was triggering too early and hurting coverage.** The char→token
+  estimate was off (Cyrillic ≈ 3.4 chars/token), so meetings that fit a single
+  pass were being chunked, which dropped content. Raised the threshold to ~90k
+  chars (genuinely long meetings only) and enlarged chunks. Also pinned summary
+  section headings to English so localized headings don't break section rendering.
+
 ### [0.22.0] - 2026-06-20
 
 #### Added
