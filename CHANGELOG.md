@@ -13,6 +13,13 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.21.2] - 2026-06-20
+
+#### Changed
+- **Record panel shows which meeting is processing.** During transcription/
+  summarization the sidebar panel now displays the meeting's name above the
+  progress bar, so it's clear what's being (re)generated.
+
 ### [0.21.1] - 2026-06-19
 
 #### Fixed

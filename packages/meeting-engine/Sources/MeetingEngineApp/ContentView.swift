@@ -154,6 +154,13 @@ struct RecordPanel: View {
 	@EnvironmentObject var controller: RecordingController
 	@EnvironmentObject var settings: AppSettings
 	@EnvironmentObject var detector: MeetingDetector
+
+	/// Title of the meeting currently being processed (derived from its note path).
+	private var activeTitle: String? {
+		guard let id = controller.activeID else { return nil }
+		return ((id as NSString).lastPathComponent as NSString).deletingPathExtension
+	}
+
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
 			if detector.suggestRecording && !controller.isRecording && !controller.busy {
@@ -194,6 +201,11 @@ struct RecordPanel: View {
 			.disabled(controller.busy)
 
 			if controller.busy {
+				if let title = activeTitle {
+					Text(title)
+						.font(.caption.weight(.semibold))
+						.lineLimit(2).fixedSize(horizontal: false, vertical: true)
+				}
 				ProgressView(value: controller.progress).progressViewStyle(.linear)
 				HStack {
 					Text("\(Int(controller.progress * 100))%")
