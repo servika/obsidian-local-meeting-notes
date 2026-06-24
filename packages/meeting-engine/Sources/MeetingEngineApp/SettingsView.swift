@@ -11,6 +11,7 @@ struct SettingsView: View {
 	@State private var pulling = false
 	@State private var pullProgress: Double = 0
 	@State private var pullStatus = ""
+	@State private var ollamaModelToPull = ""
 	@State private var modelToDownload = "base"
 	@State private var overrideLang = "uk"
 	@State private var presetMessage = ""
@@ -46,6 +47,14 @@ struct SettingsView: View {
 		if gb >= 24 { return "qwen2.5:14b" }
 		if gb >= 12 { return "qwen2.5:7b" }
 		return "qwen2.5:3b"
+	}
+
+	/// Curated local summary models to offer in the download picker, recommended
+	/// size for this Mac first.
+	private var ollamaSuggestedModels: [String] {
+		var list = ["qwen2.5:3b", "qwen2.5:7b", "qwen2.5:14b", "qwen2.5:32b", "llama3.1:8b", "gpt-oss:20b"]
+		list.removeAll { $0 == recommendedOllamaModel }
+		return [recommendedOllamaModel] + list
 	}
 
 	/// Whether the diarization binary + models are installed (drives the toggle).
@@ -341,10 +350,11 @@ struct SettingsView: View {
 							.progressViewStyle(.linear)
 						} else {
 							HStack {
-								Button("Download \(recommendedOllamaModel)") { pullOllamaModel(recommendedOllamaModel) }
-								if !settings.ollamaModel.isEmpty, !ollamaModels.contains(settings.ollamaModel) {
-									Button("Download \(settings.ollamaModel)") { pullOllamaModel(settings.ollamaModel) }
+								Picker("Download model", selection: $ollamaModelToPull) {
+									ForEach(ollamaSuggestedModels, id: \.self) { Text($0).tag($0) }
 								}
+								Button("Download") { pullOllamaModel(ollamaModelToPull) }
+									.disabled(ollamaModelToPull.isEmpty)
 							}
 							Label("Recommended for your \(systemRAMGB) GB Mac: \(recommendedOllamaModel)", systemImage: "sparkles")
 								.font(.caption).foregroundStyle(brand)
@@ -513,6 +523,7 @@ struct SettingsView: View {
 
 	private func refreshOllama() {
 		guard settings.summaryEngine == "ollama" else { return }
+		if ollamaModelToPull.isEmpty { ollamaModelToPull = recommendedOllamaModel }
 		ollamaState = nil // checking…
 		let url = settings.ollamaURL
 		DispatchQueue.global().async {

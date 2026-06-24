@@ -20,9 +20,11 @@ This repo ships two apps, versioned independently:
   tab now checks whether Ollama is **running**, **installed but not running**, or
   **not installed**, and shows the right next step for each: a **Download Ollama**
   link (ollama.com) when absent, an **Open Ollama** button when it's installed but
-  stopped, or the model picker when it's running. You can now **download a model
-  from inside the app** (a "Download <model>" button with a progress bar) instead
-  of running `ollama pull` in a terminal. The summarize-time error also now
+  stopped, or the model controls when it's running. You can now **download a model
+  from inside the app** - a model picker (recommended size for your Mac first) + a
+  Download button with a progress bar, mirroring the whisper-model download in the
+  Transcription tab - instead of running `ollama pull` in a terminal. The
+  summarize-time error also now
   distinguishes "not installed" from "not running" instead of always saying
   "install it".
 - **Update notifications.** The app checks GitHub Releases on launch (throttled to
