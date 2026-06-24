@@ -81,7 +81,7 @@ if [ "$RELEASE" -eq 1 ]; then
 		echo "release $TAG exists - replacing its DMG asset…"
 		gh release upload "$TAG" "${ASSET}#AI-Meeting-Notes.dmg" --clobber
 	else
-		echo "creating release $TAG…"
+		echo "creating release ${TAG}…"
 		gh release create "$TAG" \
 			--title "AI Meeting Notes ${VERSION}" \
 			--notes "Signed & notarized macOS app - opens cleanly on any Mac (no Gatekeeper warning). Requires macOS 14.4+.
