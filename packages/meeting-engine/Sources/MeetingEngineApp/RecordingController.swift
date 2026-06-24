@@ -108,10 +108,16 @@ final class RecordingController: ObservableObject {
 			let speakers = self.settings.speakerRecognitionEnabled ? self.settings.speakerCount : 0
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript)
+				// Apply the audio-retention policy - but only when transcription ran,
+				// so an audio-only recording is never compressed/deleted out from under
+				// the user (the audio is the content in that case).
+				let policy = self.settings.transcribeMeetings ? self.settings.audioRetention : "original"
+				if policy != "original" { DispatchQueue.main.async { self.status = "Optimizing audio…" } }
+				let audioExt = Self.finalizeAudio(systemWav: result.systemURL.path, micWav: result.micURL.path, policy: policy)
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: result.duration, model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
-				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)")
+				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)" + Self.audioStatusSuffix(policy))
 			} catch is CancelledError {
 				// Keep the recording as a re-generatable note.
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: "",
@@ -145,8 +151,13 @@ final class RecordingController: ObservableObject {
 			let content = (try? String(contentsOf: noteURL, encoding: .utf8)) ?? ""
 			let date = Self.frontmatterValue("date", in: content) ?? title
 			let audioBase = Self.frontmatterValue("audio", in: content) ?? "recordings/\(title)"
-			let systemWav = meetingsDir.appendingPathComponent(audioBase + ".system.wav").path
-			let micWav = meetingsDir.appendingPathComponent(audioBase + ".mic.wav").path
+			// Audio may be the original WAV or a compressed M4A - use whichever exists.
+			let audioExt = ["wav", "m4a"].first { e in
+				FileManager.default.fileExists(atPath: meetingsDir.appendingPathComponent(audioBase + ".system." + e).path)
+					|| FileManager.default.fileExists(atPath: meetingsDir.appendingPathComponent(audioBase + ".mic." + e).path)
+			} ?? "wav"
+			let systemWav = meetingsDir.appendingPathComponent(audioBase + ".system." + audioExt).path
+			let micWav = meetingsDir.appendingPathComponent(audioBase + ".mic." + audioExt).path
 			let dur = Int(Self.frontmatterValue("duration", in: content) ?? "") ?? Self.audioDurationSeconds(systemWav: systemWav, micWav: micWav)
 			// An explicit override wins; otherwise keep whatever the note recorded.
 			let speakers = self.settings.speakerRecognitionEnabled
@@ -154,14 +165,14 @@ final class RecordingController: ObservableObject {
 				: 0
 
 			guard FileManager.default.fileExists(atPath: systemWav) || FileManager.default.fileExists(atPath: micWav) else {
-				self.finish(status: "No saved audio found for this meeting.")
+				self.finish(status: "No saved audio found (it may have been removed after transcription).")
 				return
 			}
 			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
 			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript)
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Re-generated \(title)")
@@ -254,7 +265,9 @@ final class RecordingController: ObservableObject {
 		}
 	}
 
-	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, speakerCount: Int = 0, summary: String, transcript: String) -> String {
+	/// `audioExt` is the extension of the kept tracks ("wav" or "m4a"), or nil when
+	/// the audio was deleted after transcription.
+	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, speakerCount: Int = 0, summary: String, transcript: String, audioExt: String? = "wav") -> String {
 		let audioName = (audioBase as NSString).lastPathComponent
 		var s = "---\ntype: meeting\ntags: [meeting]\ndate: \(date)\naudio: \(audioBase)\n"
 		if durationSeconds > 0 { s += "duration: \(durationSeconds)\n" }
@@ -265,9 +278,59 @@ final class RecordingController: ObservableObject {
 		s += "## Transcript\n\n" + (transcript.isEmpty ? "_(no speech detected)_" : transcript) + "\n"
 		// Embed the audio so Obsidian shows inline players. The app hides this
 		// section (it has its own access to the recordings).
-		s += "\n## Audio\n\n**You (microphone)**\n\n![[\(audioName).mic.wav]]\n\n"
-		s += "**Them (system audio)**\n\n![[\(audioName).system.wav]]\n"
+		s += "\n## Audio\n\n"
+		if let ext = audioExt {
+			s += "**You (microphone)**\n\n![[\(audioName).mic.\(ext)]]\n\n"
+			s += "**Them (system audio)**\n\n![[\(audioName).system.\(ext)]]\n"
+		} else {
+			s += "_Audio removed after transcription to save space._\n"
+		}
 		return s
+	}
+
+	// MARK: audio retention
+
+	/// Apply the audio-retention policy after a successful transcription. Returns
+	/// the extension to embed ("wav"/"m4a"), or nil when the audio was deleted.
+	private static func finalizeAudio(systemWav: String, micWav: String, policy: String) -> String? {
+		let fm = FileManager.default
+		switch policy {
+		case "delete":
+			for p in [systemWav, micWav] { try? fm.removeItem(atPath: p) }
+			return nil
+		case "compressed":
+			var allOK = true
+			for wav in [systemWav, micWav] where fm.fileExists(atPath: wav) {
+				let m4a = (wav as NSString).deletingPathExtension + ".m4a"
+				if compressToM4A(wav: wav, m4a: m4a) {
+					try? fm.removeItem(atPath: wav)
+				} else {
+					allOK = false
+				}
+			}
+			return allOK ? "m4a" : "wav" // fall back to keeping WAV if encoding failed
+		default: // "original"
+			return "wav"
+		}
+	}
+
+	/// Transcode a WAV to a small AAC `.m4a` (speech-quality bitrate) via afconvert.
+	private static func compressToM4A(wav: String, m4a: String) -> Bool {
+		let p = Process()
+		p.executableURL = URL(fileURLWithPath: "/usr/bin/afconvert")
+		p.arguments = ["-f", "m4af", "-d", "aac", "-b", "48000", wav, m4a]
+		p.standardOutput = Pipe(); p.standardError = Pipe()
+		do { try p.run() } catch { return false }
+		p.waitUntilExit()
+		return p.terminationStatus == 0 && FileManager.default.fileExists(atPath: m4a)
+	}
+
+	private static func audioStatusSuffix(_ policy: String) -> String {
+		switch policy {
+		case "compressed": return " · audio compressed"
+		case "delete": return " · audio removed"
+		default: return ""
+		}
 	}
 
 	/// Length (seconds) of a recording, from whichever track exists.

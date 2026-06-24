@@ -49,6 +49,17 @@ struct SettingsView: View {
 		return "qwen2.5:3b"
 	}
 
+	private var audioRetentionHint: String {
+		switch settings.audioRetention {
+		case "original":
+			return "Keeps the full-quality WAV tracks - largest files, but the best source for re-generating the transcript later."
+		case "delete":
+			return "Removes the audio once transcribed: smallest, but you can't re-listen or Re-generate this meeting afterwards."
+		default:
+			return "Compresses the audio to small AAC files after transcribing (~10× smaller). You keep re-listen and Re-generate."
+		}
+	}
+
 	/// Curated local summary models to offer in the download picker, recommended
 	/// size for this Mac first.
 	private var ollamaSuggestedModels: [String] {
@@ -150,6 +161,15 @@ struct SettingsView: View {
 				Toggle("Suggest recording when a meeting is detected", isOn: $settings.suggestOnMeetingDetected)
 				Text("Shows a \"Start recording?\" nudge when another app (Zoom, Teams, Meet, FaceTime…) starts using your microphone. Never records on its own.")
 					.font(.caption).foregroundStyle(.secondary)
+
+				Picker("Audio after transcription", selection: $settings.audioRetention) {
+					Text("Compressed (recommended)").tag("compressed")
+					Text("Best quality (keep original)").tag("original")
+					Text("Delete (text only)").tag("delete")
+				}
+				Text(audioRetentionHint)
+					.font(.caption).foregroundStyle(settings.audioRetention == "delete" ? .orange : .secondary)
+					.fixedSize(horizontal: false, vertical: true)
 			}
 
 			Section("Experimental features") {

@@ -26,6 +26,9 @@ final class AppSettings: ObservableObject {
 	/// Pipeline stage toggles - let the user run only the steps they want.
 	@Published var transcribeMeetings: Bool { didSet { d.set(transcribeMeetings, forKey: "transcribeMeetings") } }
 	@Published var summarizeMeetings: Bool { didSet { d.set(summarizeMeetings, forKey: "summarizeMeetings") } }
+	/// What to do with the recorded audio after a successful transcription:
+	/// "original" (keep WAV), "compressed" (AAC m4a, default), or "delete" (text only).
+	@Published var audioRetention: String { didSet { d.set(audioRetention, forKey: "audioRetention") } }
 	@Published var summaryEngine: String { didSet { d.set(summaryEngine, forKey: "summaryEngine") } } // ollama|claude
 	@Published var ollamaURL: String { didSet { d.set(ollamaURL, forKey: "ollamaURL") } }
 	@Published var ollamaModel: String { didSet { d.set(ollamaModel, forKey: "ollamaModel") } }
@@ -55,6 +58,7 @@ final class AppSettings: ObservableObject {
 		featureFlags = flags
 		speakerCount = d.integer(forKey: "speakerCount") // 0 (Auto) when unset
 		summaryEngine = d.string(forKey: "summaryEngine") ?? "ollama"
+		audioRetention = d.string(forKey: "audioRetention") ?? "compressed"
 		transcribeMeetings = (d.object(forKey: "transcribeMeetings") as? Bool) ?? true
 		// Migrate the legacy "None" summary engine to the explicit Summarize toggle:
 		// a stored toggle wins; otherwise summary is on unless the engine was "none".

@@ -84,7 +84,7 @@ final class MeetingStore: ObservableObject {
 		let audioBase = RecordingController.frontmatterValue("audio", in: content) ?? "recordings/\(meeting.title)"
 		try? FileManager.default.removeItem(at: meeting.url)
 		if RecordingController.existingNoteURL(audioBase: audioBase, in: dir) == nil {
-			for ext in ["system.wav", "mic.wav"] {
+			for ext in ["system.wav", "mic.wav", "system.m4a", "mic.m4a"] {
 				try? FileManager.default.removeItem(at: dir.appendingPathComponent(audioBase + "." + ext))
 			}
 		}

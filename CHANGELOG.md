@@ -16,6 +16,14 @@ This repo ships two apps, versioned independently:
 ### [0.27.0] - 2026-06-24
 
 #### Added
+- **Audio storage options after transcription.** A new Settings → Recording
+  control - **Audio after transcription**: *Compressed (recommended, default)*,
+  *Best quality (keep original WAV)*, or *Delete (text only)*. Compressed transcodes
+  the two tracks to small AAC `.m4a` files (~10× smaller) via afconvert and updates
+  the note's audio embeds; Delete removes the audio and notes "_Audio removed after
+  transcription_" in the meeting. Re-generate and the meeting list keep working with
+  either format; only Delete forgoes re-listen/Re-generate (it's an explicit opt-in).
+  Audio-only recordings (transcription off) are never touched.
 - **Ollama: detect state, guide setup, and download models in-app.** The Summary
   tab now checks whether Ollama is **running**, **installed but not running**, or
   **not installed**, and shows the right next step for each: a **Download Ollama**
