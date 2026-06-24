@@ -4,7 +4,7 @@ name: Windows app
 # build on the macOS dev machine) and runs the portable Core unit tests.
 on:
   push:
-    branches: [main]
+    branches: [main, windows-app]
     paths: ["packages/meeting-notes-windows/**", ".github/workflows/windows-app.yml"]
   pull_request:
     paths: ["packages/meeting-notes-windows/**", ".github/workflows/windows-app.yml"]
