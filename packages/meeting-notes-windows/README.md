@@ -41,3 +41,19 @@ The app needs `whisper-cli.exe` and a ggml model (`.bin`):
 - **whisper-cli.exe** - bundle it once with `pwsh ./scripts/setup-whisper.ps1`
   (downloads the latest whisper.cpp Windows binary into `src/MeetingNotes.App/vendor/`,
   copied next to the app on build and auto-resolved). Or Browse to your own copy.
+
+## Release
+
+Local packaging (self-contained zip, + an installer if Inno Setup is on PATH):
+
+```powershell
+pwsh ./scripts/build-app.ps1   # -> publish/AI-Meeting-Notes-Windows-<ver>.zip
+```
+
+Cut a public release: bump `VERSION`, then push a tag `win-v<version>` (or run the
+**Windows release** workflow manually). CI publishes a self-contained build, packages
+a zip + Inno Setup installer, and attaches them to a GitHub Release. Authenticode
+signing (Azure Trusted Signing) runs automatically when these repo secrets are set:
+`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `TRUSTED_SIGNING_ENDPOINT`,
+`TRUSTED_SIGNING_ACCOUNT`, `TRUSTED_SIGNING_PROFILE` - until then the build is unsigned
+(SmartScreen warns on first run).

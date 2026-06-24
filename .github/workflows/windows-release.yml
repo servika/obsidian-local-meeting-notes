@@ -1,0 +1,100 @@
+name: Windows release
+
+# Publishes the Windows app as a self-contained zip + installer and attaches them
+# to a GitHub Release. Trigger by pushing a tag like `win-v0.1.0`, or run manually
+# (workflow_dispatch) to cut a release at the current VERSION.
+#
+# Authenticode signing (the Windows analog of Apple notarization) runs only when
+# the Azure Trusted Signing secrets are configured; until then the build is
+# unsigned and SmartScreen warns on first run - same posture as the macOS app's
+# ad-hoc signing before Developer ID was set up.
+on:
+  push:
+    tags: ["win-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    defaults:
+      run:
+        working-directory: packages/meeting-notes-windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Read version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION).Trim()
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Bundle whisper-cli
+        shell: pwsh
+        run: ./scripts/setup-whisper.ps1
+        continue-on-error: true
+
+      - name: Publish (self-contained win-x64)
+        run: dotnet publish src/MeetingNotes.App -c Release -r win-x64 --self-contained -p:Version=${{ steps.ver.outputs.version }} -o publish/app
+
+      - name: Sign app binaries (Azure Trusted Signing)
+        if: ${{ env.AZURE_TENANT_ID != '' }}
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}/packages/meeting-notes-windows/publish/app
+          files-folder-filter: exe,dll
+          files-folder-recurse: true
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Package (zip + installer)
+        shell: pwsh
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          Compress-Archive -Path publish/app/* -DestinationPath "publish/AI-Meeting-Notes-Windows-$v.zip" -Force
+          Copy-Item "publish/AI-Meeting-Notes-Windows-$v.zip" "publish/AI-Meeting-Notes-Windows.zip" -Force
+          ISCC /DMyAppVersion=$v /DMyAppDir=publish\app /Opublish scripts\installer.iss
+          Copy-Item "publish/AI-Meeting-Notes-Setup-$v.exe" "publish/AI-Meeting-Notes-Setup.exe" -Force
+
+      - name: Sign installer (Azure Trusted Signing)
+        if: ${{ env.AZURE_TENANT_ID != '' }}
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}/packages/meeting-notes-windows/publish/AI-Meeting-Notes-Setup.exe
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: win-v${{ steps.ver.outputs.version }}
+          name: AI Meeting Notes for Windows ${{ steps.ver.outputs.version }}
+          body: |
+            Windows build of AI Meeting Notes (self-contained - no .NET install needed). Requires Windows 10/11 x64.
+
+            - **Installer:** `AI-Meeting-Notes-Setup.exe`
+            - **Portable zip:** `AI-Meeting-Notes-Windows.zip`
+
+            First run: open Settings, pick your Obsidian vault's Meetings folder, click **Download** to get a whisper model, then **Record**.
+          files: |
+            packages/meeting-notes-windows/publish/AI-Meeting-Notes-Windows.zip
+            packages/meeting-notes-windows/publish/AI-Meeting-Notes-Setup.exe
