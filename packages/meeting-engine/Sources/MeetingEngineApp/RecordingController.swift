@@ -172,10 +172,19 @@ final class RecordingController: ObservableObject {
 			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
 				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt)
+				// Re-apply the audio policy so re-transcribing can compress an older,
+				// still-uncompressed recording. Never auto-delete on re-generate (you're
+				// actively reprocessing) - and don't touch audio that's already .m4a.
+				var resultExt: String? = audioExt
+				if audioExt == "wav", self.settings.transcribeMeetings {
+					let policy = self.settings.audioRetention == "delete" ? "original" : self.settings.audioRetention
+					if policy == "compressed" { DispatchQueue.main.async { self.status = "Optimizing audio…" } }
+					resultExt = Self.finalizeAudio(systemWav: systemWav, micWav: micWav, policy: policy)
+				}
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: resultExt)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
-				self.finish(status: "✅ Re-generated \(title)")
+				self.finish(status: "✅ Re-generated \(title)" + (resultExt == "m4a" && audioExt == "wav" ? " · audio compressed" : ""))
 			} catch is CancelledError {
 				self.finish(status: "Stopped. The existing note is unchanged.")
 			} catch {

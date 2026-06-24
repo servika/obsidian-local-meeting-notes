@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.27.1] - 2026-06-24
+
+#### Changed
+- **Re-generate now applies your audio setting.** Re-transcribing an older,
+  still-uncompressed recording compresses it when "Audio after transcription" is
+  set to *Compressed* - a simple way to shrink your backlog (re-generate → audio
+  becomes `.m4a`). Re-generate never auto-deletes audio (deletion stays a
+  deliberate choice on the original recording), and recordings already compressed
+  are left untouched.
+
 ### [0.27.0] - 2026-06-24
 
 #### Added
