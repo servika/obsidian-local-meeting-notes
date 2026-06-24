@@ -7,6 +7,10 @@ struct SettingsView: View {
 	@EnvironmentObject var updates: UpdateChecker
 	@StateObject private var downloader = ModelDownloader()
 	@State private var ollamaModels: [String] = []
+	@State private var ollamaState: OllamaState?   // nil = checking
+	@State private var pulling = false
+	@State private var pullProgress: Double = 0
+	@State private var pullStatus = ""
 	@State private var modelToDownload = "base"
 	@State private var overrideLang = "uk"
 	@State private var presetMessage = ""
@@ -314,23 +318,75 @@ struct SettingsView: View {
 
 				if settings.summaryEngine == "ollama" {
 					TextField("Ollama URL", text: $settings.ollamaURL)
-					HStack {
-						TextField("Model (e.g. llama3.1)", text: $settings.ollamaModel)
-						if !ollamaModels.isEmpty {
-							Picker("", selection: $settings.ollamaModel) {
-								Text("-").tag("")
-								ForEach(ollamaModels, id: \.self) { Text($0).tag($0) }
+
+					switch ollamaState {
+					case .running:
+						Label("Ollama is running", systemImage: "checkmark.circle.fill")
+							.font(.caption).foregroundStyle(.green)
+						HStack {
+							TextField("Model (e.g. llama3.1)", text: $settings.ollamaModel)
+							if !ollamaModels.isEmpty {
+								Picker("", selection: $settings.ollamaModel) {
+									Text("-").tag("")
+									ForEach(ollamaModels, id: \.self) { Text($0).tag($0) }
+								}
+								.labelsHidden().frame(width: 170)
 							}
-							.labelsHidden().frame(width: 170)
+							Button("Refresh", action: refreshOllama)
 						}
-						Button("Refresh", action: refreshOllama)
-					}
-					Label("Recommended for your \(systemRAMGB) GB Mac: \(recommendedOllamaModel)  ·  run: ollama pull \(recommendedOllamaModel)", systemImage: "sparkles")
-						.font(.caption).foregroundStyle(brand)
-						.textSelection(.enabled)
-					if systemRAMGB < 12 {
-						Text("On low-RAM Macs, Claude (above) gives the best quality without local memory limits.")
+						if pulling {
+							ProgressView(value: pullProgress >= 0 ? pullProgress : nil) {
+								Text(pullStatus).font(.caption)
+							}
+							.progressViewStyle(.linear)
+						} else {
+							HStack {
+								Button("Download \(recommendedOllamaModel)") { pullOllamaModel(recommendedOllamaModel) }
+								if !settings.ollamaModel.isEmpty, !ollamaModels.contains(settings.ollamaModel) {
+									Button("Download \(settings.ollamaModel)") { pullOllamaModel(settings.ollamaModel) }
+								}
+							}
+							Label("Recommended for your \(systemRAMGB) GB Mac: \(recommendedOllamaModel)", systemImage: "sparkles")
+								.font(.caption).foregroundStyle(brand)
+							if !pullStatus.isEmpty, pullStatus.hasPrefix("Download failed") {
+								Text(pullStatus).font(.caption).foregroundStyle(.orange)
+							}
+						}
+						if systemRAMGB < 12 {
+							Text("On low-RAM Macs, Claude (above) gives the best quality without local memory limits.")
+								.font(.caption).foregroundStyle(.secondary)
+						}
+
+					case .installedNotRunning:
+						Label("Ollama is installed but not running", systemImage: "exclamationmark.triangle.fill")
+							.font(.caption).foregroundStyle(.orange)
+						HStack {
+							Button("Open Ollama", action: openOllamaApp)
+							Button("Re-check", action: refreshOllama)
+						}
+						Text("Start the Ollama app (it runs in the menu bar), then click Re-check. Or use the Claude engine above.")
 							.font(.caption).foregroundStyle(.secondary)
+							.fixedSize(horizontal: false, vertical: true)
+
+					case .notInstalled:
+						Label("Ollama isn't installed", systemImage: "exclamationmark.triangle.fill")
+							.font(.caption).foregroundStyle(.orange)
+						HStack {
+							Link(destination: URL(string: "https://ollama.com/download")!) {
+								Label("Download Ollama", systemImage: "arrow.down.circle")
+							}
+							.buttonStyle(.borderedProminent).tint(brand)
+							Button("Re-check", action: refreshOllama)
+						}
+						Text("Ollama is a free local model runner. Install it, then click Re-check - or use the Claude engine above (no install, uses your API key).")
+							.font(.caption).foregroundStyle(.secondary)
+							.fixedSize(horizontal: false, vertical: true)
+
+					case nil:
+						HStack(spacing: 6) {
+							ProgressView().controlSize(.small)
+							Text("Checking Ollama…").font(.caption).foregroundStyle(.secondary)
+						}
 					}
 				}
 
@@ -415,6 +471,7 @@ struct SettingsView: View {
 		.tint(brand)
 		.frame(width: 720, height: 660)
 		.onAppear(perform: refreshOllama)
+		.onChange(of: settings.summaryEngine) { refreshOllama() }
 	}
 
 	/// An orange "unavailable / dependency" note shown under a stage toggle.
@@ -456,10 +513,39 @@ struct SettingsView: View {
 
 	private func refreshOllama() {
 		guard settings.summaryEngine == "ollama" else { return }
+		ollamaState = nil // checking…
 		let url = settings.ollamaURL
 		DispatchQueue.global().async {
-			let models = Ollama.installedModels(url: url)
-			DispatchQueue.main.async { ollamaModels = models }
+			let state = Ollama.status(url: url)
+			let models: [String] = { if case let .running(m) = state { return m } else { return [] } }()
+			DispatchQueue.main.async { ollamaState = state; ollamaModels = models }
 		}
+	}
+
+	/// Download an Ollama model in-app (no terminal) via the pull API, with progress.
+	private func pullOllamaModel(_ model: String) {
+		guard !pulling, !model.isEmpty else { return }
+		pulling = true; pullProgress = 0; pullStatus = "Starting download…"
+		let url = settings.ollamaURL
+		Task {
+			do {
+				try await Ollama.pull(model: model, url: url) { p, s in
+					Task { @MainActor in pullProgress = p; pullStatus = s }
+				}
+				await MainActor.run { settings.ollamaModel = model; pulling = false; refreshOllama() }
+			} catch {
+				await MainActor.run { pulling = false; pullStatus = "Download failed: \(error)" }
+			}
+		}
+	}
+
+	/// Launch the installed Ollama app, then re-check shortly after.
+	private func openOllamaApp() {
+		let paths = ["/Applications/Ollama.app",
+			(NSHomeDirectory() as NSString).appendingPathComponent("Applications/Ollama.app")]
+		if let p = paths.first(where: { FileManager.default.fileExists(atPath: $0) }) {
+			NSWorkspace.shared.open(URL(fileURLWithPath: p))
+		}
+		DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: refreshOllama)
 	}
 }

@@ -16,6 +16,15 @@ This repo ships two apps, versioned independently:
 ### [0.27.0] - 2026-06-24
 
 #### Added
+- **Ollama: detect state, guide setup, and download models in-app.** The Summary
+  tab now checks whether Ollama is **running**, **installed but not running**, or
+  **not installed**, and shows the right next step for each: a **Download Ollama**
+  link (ollama.com) when absent, an **Open Ollama** button when it's installed but
+  stopped, or the model picker when it's running. You can now **download a model
+  from inside the app** (a "Download <model>" button with a progress bar) instead
+  of running `ollama pull` in a terminal. The summarize-time error also now
+  distinguishes "not installed" from "not running" instead of always saying
+  "install it".
 - **Update notifications.** The app checks GitHub Releases on launch (throttled to
   once a day) for a newer macOS version and, when one exists, shows a slim
   "Version X is available - Download" bar at the top of the window (dismissible

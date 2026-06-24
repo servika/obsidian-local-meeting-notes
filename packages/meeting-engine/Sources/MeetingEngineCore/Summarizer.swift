@@ -133,7 +133,10 @@ public enum Summarizer {
 		do {
 			data = try post(u, headers: ["Content-Type": "application/json"], json: body)
 		} catch let e as URLError where [.cannotConnectToHost, .cannotFindHost, .timedOut, .networkConnectionLost].contains(e.code) {
-			throw SummaryError("Can't reach Ollama at \(url). Install it from ollama.com and run a model (e.g. `ollama pull \(model.isEmpty ? "qwen2.5:7b" : model)`), or set the Summary engine to Claude or None in Settings.")
+			let hint = Ollama.isInstalled()
+				? "Ollama is installed but not running - open the Ollama app to start it."
+				: "Ollama isn't installed - download it from ollama.com."
+			throw SummaryError("Can't reach Ollama at \(url). \(hint) Or switch the Summary engine to Claude or None in Settings.")
 		}
 		guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
 			throw SummaryError("unexpected Ollama response")
@@ -211,21 +214,80 @@ public struct SummaryError: Error, CustomStringConvertible {
 	public var description: String { message }
 }
 
-// List installed Ollama models (for the Settings picker).
+/// Local Ollama server state, so the UI can guide install vs. start vs. pull.
+public enum OllamaState: Equatable {
+	case running(models: [String])  // reachable; lists installed models (may be empty)
+	case installedNotRunning        // binary/app present but the server isn't up
+	case notInstalled               // no Ollama found on this Mac
+}
+
 public enum Ollama {
+	/// Installed model names (empty if Ollama isn't reachable).
 	public static func installedModels(url: String) -> [String] {
+		reachableModels(url: url) ?? []
+	}
+
+	/// Detect whether Ollama is running, merely installed, or absent.
+	public static func status(url: String) -> OllamaState {
+		if let models = reachableModels(url: url) { return .running(models: models) }
+		return isInstalled() ? .installedNotRunning : .notInstalled
+	}
+
+	/// Whether the Ollama app or CLI exists on this Mac (even if not running).
+	public static func isInstalled() -> Bool {
+		let fm = FileManager.default
+		let home = NSHomeDirectory()
+		return [
+			"/usr/local/bin/ollama", "/opt/homebrew/bin/ollama", "/usr/bin/ollama",
+			"/Applications/Ollama.app",
+			(home as NSString).appendingPathComponent("Applications/Ollama.app"),
+		].contains { fm.fileExists(atPath: $0) }
+	}
+
+	/// nil when unreachable; otherwise the (possibly empty) installed-model list.
+	private static func reachableModels(url: String) -> [String]? {
 		let endpoint = url.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/tags"
-		guard let u = URL(string: endpoint) else { return [] }
+		guard let u = URL(string: endpoint) else { return nil }
 		let sem = DispatchSemaphore(value: 0)
-		var names: [String] = []
-		URLSession.shared.dataTask(with: u) { data, _, _ in
+		var result: [String]?
+		URLSession.shared.dataTask(with: u) { data, response, _ in
 			defer { sem.signal() }
-			guard let data = data,
-				let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-				let models = obj["models"] as? [[String: Any]] else { return }
-			names = models.compactMap { $0["name"] as? String }
+			guard let data = data, (response as? HTTPURLResponse)?.statusCode == 200,
+				let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+			let models = obj["models"] as? [[String: Any]] ?? []
+			result = models.compactMap { $0["name"] as? String }.sorted()
 		}.resume()
 		_ = sem.wait(timeout: .now() + 3)
-		return names.sorted()
+		return result
+	}
+
+	/// Download a model via `POST /api/pull`, reporting fractional progress (0…1,
+	/// or negative for an indeterminate phase) plus the current status string.
+	public static func pull(model: String, url: String,
+		progress: @escaping (Double, String) -> Void) async throws {
+		let endpoint = url.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/api/pull"
+		guard let u = URL(string: endpoint) else { throw SummaryError("bad Ollama URL: \(url)") }
+		var req = URLRequest(url: u, timeoutInterval: 3600)
+		req.httpMethod = "POST"
+		req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+		req.httpBody = try JSONSerialization.data(withJSONObject: ["name": model, "stream": true])
+
+		let (bytes, response) = try await URLSession.shared.bytes(for: req)
+		guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+			throw SummaryError("Couldn't reach Ollama to download \(model).")
+		}
+		// Ollama streams newline-delimited JSON: {"status":…, "completed":N, "total":M}.
+		for try await line in bytes.lines {
+			guard let d = line.data(using: .utf8),
+				let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { continue }
+			if let err = obj["error"] as? String { throw SummaryError("Ollama: \(err)") }
+			let status = obj["status"] as? String ?? ""
+			if let total = obj["total"] as? Double, let done = obj["completed"] as? Double, total > 0 {
+				progress(done / total, status)
+			} else {
+				progress(-1, status)
+			}
+		}
+		progress(1, "done")
 	}
 }
