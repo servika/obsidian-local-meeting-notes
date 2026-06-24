@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Meeting Notes - Obsidian plugin (legacy)</title>
+<meta name="description" content="The legacy Obsidian plugin for AI Meeting Notes: record and transcribe meetings inside your vault. Superseded by the desktop app.">
+<style>
+  :root{
+    --indigo:#5c4cea; --purple:#9445d6; --ink:#1d1d2b; --muted:#5b5b6b;
+    --bg:#ffffff; --soft:#f5f4fb; --border:#e7e5f2; --code:#2b2740;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+  header.hero{background:linear-gradient(135deg,#6b7280,#9445d6);color:#fff;padding:56px 0 48px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);
+    border-radius:999px;padding:4px 12px;font-size:13px;margin-bottom:18px}
+  .hero h1{font-size:40px;line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.5px}
+  .hero p.tag{font-size:19px;opacity:.95;margin:0 0 24px;max-width:620px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px}
+  .btn.primary{background:#fff;color:var(--indigo)}
+  .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5)}
+  .btn:hover{text-decoration:none;opacity:.92}
+  section{padding:46px 0;border-bottom:1px solid var(--border)}
+  h2{font-size:26px;font-weight:750;letter-spacing:-.3px;margin:0 0 16px}
+  h3{font-size:18px;margin:24px 0 8px}
+  .lead{font-size:18px;color:var(--muted)}
+  pre{background:var(--code);color:#e8e6f5;border-radius:12px;padding:16px 18px;overflow:auto;font-size:13.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;line-height:1.5}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;background:var(--soft);
+    border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:.92em}
+  pre code{background:none;border:none;padding:0}
+  ol li,ul li{margin:6px 0}
+  .diagram{background:var(--code);color:#cfcaf0;border-radius:12px;padding:18px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+    font-size:13px;white-space:pre;overflow:auto;line-height:1.45}
+  .note{background:#fff8ec;border:1px solid #f0dcae;border-radius:10px;padding:14px 16px;font-size:14.5px}
+  table{border-collapse:collapse;width:100%;font-size:14.5px}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft)}
+  footer{padding:40px 0;color:var(--muted);font-size:14px;text-align:center}
+  .pill{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">Obsidian plugin · legacy</span>
+    <h1>AI Meeting Notes for Obsidian</h1>
+    <p class="tag">Record and transcribe meetings <em>inside your vault</em>, 100% locally. This is the original plugin - now superseded by the desktop app.</p>
+    <div class="cta">
+      <a class="btn primary" href="./">Get the desktop app instead</a>
+      <a class="btn ghost" href="https://github.com/servika/ai-meeting-notes/tree/main/packages/ai-meeting-notes">Plugin on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <p class="note">⚠️ <strong>Deprecated - not recommended.</strong> The <a href="./">desktop apps</a> (macOS &amp; Windows) now do everything this plugin does - record, transcribe, and summarize - with <strong>zero audio setup</strong> (no loopback device) and a built-in meetings library. They write the same Markdown notes into any folder, including an Obsidian vault. This plugin is kept for the record and for the pure-in-Obsidian workflow, but isn't actively developed.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What it does</h2>
+    <p class="lead">Captures your microphone <em>and</em> the call's system audio inside Obsidian, transcribes them locally with <a href="https://github.com/ggerganov/whisper.cpp">whisper.cpp</a>, and writes a timestamped Markdown note into your vault. Optional AI summary via a local <a href="https://ollama.com">Ollama</a> model.</p>
+    <div class="diagram"> Mic ─┐
+      ├─► Web Audio mixer ─► MediaRecorder ─► OfflineAudioContext
+ Sys ─┘   (loopback)                          (resample → 16 kHz mono WAV)
+                                                      │
+                                          whisper.cpp (whisper-cli)
+                                                      │
+                                       transcript ─► Markdown note</div>
+    <p style="margin-top:14px;color:var(--muted)">Transcription is batch: record the whole meeting, then transcribe on stop. <strong>Desktop Obsidian only</strong> (it needs to run a local binary and capture audio).</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Prerequisites (macOS)</h2>
+    <p>The plugin orchestrates two external pieces you install once - it does <strong>not</strong> bundle them.</p>
+
+    <h3>1. A loopback device for system audio</h3>
+    <p>Capturing system audio on macOS needs a <strong>loopback (virtual audio) device</strong> - install any one you prefer, then select it as the System audio input in the plugin's settings. So you can still <strong>hear</strong> the call, open <strong>Audio MIDI Setup</strong>, create a <strong>Multi-Output Device</strong> containing both your speakers/headphones <strong>and</strong> the loopback device, and select it as your system output. (Recording just your own mic? Skip the loopback device.)</p>
+
+    <h3>2. whisper.cpp + a model</h3>
+<pre><code>brew install whisper-cpp
+mkdir -p ~/models
+curl -L -o ~/models/ggml-base.en.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin</code></pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Install &amp; set up</h2>
+    <h3>Via BRAT</h3>
+    <ol>
+      <li>Install the <a href="https://github.com/TfTHacker/obsidian42-brat">BRAT</a> community plugin.</li>
+      <li>BRAT → <strong>Add Beta Plugin</strong> → <code>servika/ai-meeting-notes</code>.</li>
+      <li>Enable <strong>AI Meeting Notes</strong> under <strong>Settings → Community plugins</strong>.</li>
+    </ol>
+    <h3>Then, in Settings → AI Meeting Notes</h3>
+    <ol>
+      <li>Click <strong>Grant</strong> to allow microphone access (so device names appear).</li>
+      <li>Choose your <strong>Microphone</strong> and your <strong>System audio (loopback)</strong> device.</li>
+      <li>Set <strong>Model path</strong> to your <code>.bin</code> file (e.g. <code>~/models/ggml-base.en.bin</code>).</li>
+      <li>The <strong>whisper-cli binary</strong> defaults to <code>whisper-cli</code>; override with a full path if needed.</li>
+    </ol>
+    <p class="note">📖 The <a href="https://github.com/servika/ai-meeting-notes/blob/main/docs/USAGE.md">step-by-step usage guide</a> walks through the macOS audio routing - the part people get stuck on.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Settings reference</h2>
+    <table>
+      <tr><th>Setting</th><th>Default</th><th>Description</th></tr>
+      <tr><td>Microphone</td><td>-</td><td>Input device for your voice.</td></tr>
+      <tr><td>System audio (loopback)</td><td>-</td><td>The other participants (your loopback device). Empty = mic-only.</td></tr>
+      <tr><td>whisper-cli binary</td><td><code>whisper-cli</code></td><td>Command or absolute path to the whisper.cpp CLI.</td></tr>
+      <tr><td>Model path</td><td>-</td><td>Path to a <code>ggml-*.bin</code> model.</td></tr>
+      <tr><td>Language</td><td><code>auto</code></td><td>Language code (e.g. <code>en</code>) or <code>auto</code>.</td></tr>
+      <tr><td>Transcripts folder</td><td><code>Meetings</code></td><td>Vault folder for transcript notes.</td></tr>
+      <tr><td>Generate summary</td><td><code>false</code></td><td>Run each transcript through a local Ollama model for a summary + action items.</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><a href="./">← AI Meeting Notes (desktop app)</a> · <a href="https://github.com/servika/ai-meeting-notes">GitHub</a> · MIT License</p>
+  </div>
+</footer>
+
+</body>
+</html>
