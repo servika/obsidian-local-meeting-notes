@@ -13,4 +13,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="MeetingNotes.Core.Tests" />
+  </ItemGroup>
+
 </Project>
