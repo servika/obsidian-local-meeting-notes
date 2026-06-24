@@ -28,14 +28,12 @@ exits after each transcription.)
   ($99/yr). Until then the app is ad-hoc signed (Gatekeeper warning on other
   Macs). Mac App Store is ruled out - the sandbox forbids process-tap
   system-audio capture and shelling out to `whisper-cli`.
-- **Check for a new version.**
-  Let the app notice when a newer release is available and tell the user
-  (with a link / one-click update). Compare the running `VERSION` against the
-  latest published release (e.g. the GitHub Releases API or a small hosted
-  version manifest), check on launch (throttled) and on demand, and surface an
-  unobtrusive "update available" prompt. Keep it privacy-safe: a single
-  outbound check, no telemetry. Pairs with proper signing/notarization above so
-  the downloaded update isn't Gatekeeper-blocked.
+- ✅ **Check for a new version.** Shipped in 0.27.0. On launch (throttled to once
+  a day) the app queries the GitHub Releases API for the latest macOS `v*` release,
+  and shows a dismissible "Version X is available - Download" bar plus a manual
+  **Check for updates** button in Settings → About. Privacy-safe: one outbound
+  request, no telemetry, no auto-install (Download opens the release page).
+  Possible follow-up: one-click download + auto-relaunch (e.g. Sparkle).
 
 ## Windows app (active)
 
