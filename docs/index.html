@@ -57,9 +57,11 @@
     <h1>AI Meeting Notes</h1>
     <p class="tag">Record your meetings - your microphone <em>and</em> everyone else on the call - then transcribe and summarize them entirely on your Mac. No cloud required. No virtual audio device.</p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/servika/ai-meeting-notes">View on GitHub</a>
+      <a class="btn primary" href="https://github.com/servika/ai-meeting-notes/releases/latest/download/AI-Meeting-Notes.dmg">Download for macOS</a>
+      <a class="btn ghost" href="https://github.com/servika/ai-meeting-notes">View on GitHub</a>
       <a class="btn ghost" href="#install">Install &amp; setup</a>
     </div>
+    <p class="pill" style="color:rgba(255,255,255,.85);margin:14px 0 0">Signed &amp; notarized · macOS 14.4+ · <a style="color:#fff;text-decoration:underline" href="https://github.com/servika/ai-meeting-notes/releases/latest">all releases</a></p>
   </div>
 </header>
 
@@ -106,7 +108,9 @@
 <section id="install">
   <div class="wrap">
     <h2>Install &amp; setup</h2>
-    <p class="lead">Notarized downloads are coming. For now, build from source:</p>
+    <p class="lead"><a href="https://github.com/servika/ai-meeting-notes/releases/latest/download/AI-Meeting-Notes.dmg">Download the latest <code>.dmg</code></a>, open it, and drag <strong>AI Meeting Notes</strong> to your Applications folder. The app is signed &amp; notarized by Apple, so it opens with no Gatekeeper warning.</p>
+
+    <h3>Prefer to build from source?</h3>
     <pre><code>git clone https://github.com/servika/ai-meeting-notes
 cd ai-meeting-notes/packages/meeting-engine
 ./scripts/build-app.sh
