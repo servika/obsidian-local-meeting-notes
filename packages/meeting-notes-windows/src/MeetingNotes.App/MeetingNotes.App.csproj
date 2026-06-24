@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Windows desktop UI (WPF). Windows-only - builds on the windows-latest CI
+    runner, not on the macOS dev machine. WPF (not WinUI 3) so it compiles with a
+    plain `dotnet build` and ships as a self-contained .exe, no MSIX identity.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MeetingNotes.Core\MeetingNotes.Core.csproj" />
+    <ProjectReference Include="..\MeetingNotes.Audio\MeetingNotes.Audio.csproj" />
+  </ItemGroup>
+
+</Project>

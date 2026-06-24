@@ -1,0 +1,62 @@
+<Window x:Class="MeetingNotes.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI Meeting Notes" Height="640" Width="980">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left: controls, settings, meeting list -->
+        <DockPanel Grid.Column="0" Margin="0,0,12,0">
+            <StackPanel DockPanel.Dock="Top">
+                <Button x:Name="RecordButton" Content="● Record" Height="40" FontSize="16"
+                        Click="OnRecordClick" />
+                <TextBlock x:Name="StatusText" Margin="0,8" TextWrapping="Wrap" Text="Idle." />
+
+                <TextBlock Text="System" Margin="0,4,0,0" />
+                <ProgressBar x:Name="SystemLevel" Height="8" Minimum="0" Maximum="1" />
+                <TextBlock Text="Mic" Margin="0,4,0,0" />
+                <ProgressBar x:Name="MicLevel" Height="8" Minimum="0" Maximum="1" />
+
+                <Expander Header="Settings" Margin="0,10,0,0" IsExpanded="True">
+                    <StackPanel>
+                        <TextBlock Text="Vault - Meetings folder" />
+                        <TextBox x:Name="VaultBox" />
+                        <TextBlock Text="Whisper model path (.bin)" Margin="0,6,0,0" />
+                        <TextBox x:Name="ModelBox" />
+                        <TextBlock Text="whisper-cli.exe path" Margin="0,6,0,0" />
+                        <TextBox x:Name="WhisperBox" />
+                        <TextBlock Text="Language" Margin="0,6,0,0" />
+                        <TextBox x:Name="LanguageBox" Text="auto" />
+                        <CheckBox x:Name="TranscribeCheck" Content="Transcribe" IsChecked="True" Margin="0,6,0,0" />
+                        <CheckBox x:Name="SummarizeCheck" Content="Summarize" IsChecked="True" />
+                        <TextBlock Text="Summary engine" Margin="0,6,0,0" />
+                        <ComboBox x:Name="EngineBox" SelectedIndex="0">
+                            <ComboBoxItem Content="None" />
+                            <ComboBoxItem Content="Ollama" />
+                            <ComboBoxItem Content="Claude" />
+                        </ComboBox>
+                        <TextBlock Text="Ollama URL / model" Margin="0,6,0,0" />
+                        <TextBox x:Name="OllamaUrlBox" Text="http://localhost:11434" />
+                        <TextBox x:Name="OllamaModelBox" Text="qwen2.5:7b" Margin="0,2,0,0" />
+                        <TextBlock Text="Claude API key / model" Margin="0,6,0,0" />
+                        <PasswordBox x:Name="ClaudeKeyBox" />
+                        <TextBox x:Name="ClaudeModelBox" Text="claude-opus-4-8" Margin="0,2,0,0" />
+                        <Button Content="Save settings" Click="OnSaveSettings" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+
+            <ListBox x:Name="MeetingList" Margin="0,10,0,0"
+                     SelectionChanged="OnMeetingSelected"
+                     DisplayMemberPath="Title" />
+        </DockPanel>
+
+        <!-- Right: note detail -->
+        <TextBox Grid.Column="1" x:Name="DetailBox" IsReadOnly="True"
+                 VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                 FontFamily="Consolas" AcceptsReturn="True" />
+    </Grid>
+</Window>

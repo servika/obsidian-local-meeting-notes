@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E1D337C1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingNotes.Core.Tests", "tests\MeetingNotes.Core.Tests\MeetingNotes.Core.Tests.csproj", "{2CEF61C1-9627-4FF4-ABBF-99B4D3EBF265}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeetingNotes.App", "src\MeetingNotes.App\MeetingNotes.App.csproj", "{87DD5CDE-A232-407F-A714-B076C7F8207E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +36,15 @@ Global
 		{2CEF61C1-9627-4FF4-ABBF-99B4D3EBF265}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2CEF61C1-9627-4FF4-ABBF-99B4D3EBF265}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2CEF61C1-9627-4FF4-ABBF-99B4D3EBF265}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87DD5CDE-A232-407F-A714-B076C7F8207E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87DD5CDE-A232-407F-A714-B076C7F8207E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87DD5CDE-A232-407F-A714-B076C7F8207E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87DD5CDE-A232-407F-A714-B076C7F8207E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BC9F6243-16E0-4976-875D-434D129D7D0A} = {3AC1FC56-B577-43CA-A89F-1A4C7A5DB1E8}
 		{A319D08D-809A-475F-B7DF-56DE88EEF957} = {3AC1FC56-B577-43CA-A89F-1A4C7A5DB1E8}
 		{2CEF61C1-9627-4FF4-ABBF-99B4D3EBF265} = {E1D337C1-BA2E-49D6-8E70-9EDA39974A16}
+		{87DD5CDE-A232-407F-A714-B076C7F8207E} = {3AC1FC56-B577-43CA-A89F-1A4C7A5DB1E8}
 	EndGlobalSection
 EndGlobal
