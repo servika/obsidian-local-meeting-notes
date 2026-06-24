@@ -42,18 +42,47 @@ exits after each transcription.)
 A native Windows port in a new package `packages/meeting-notes-windows/`, leaving
 the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLAN.md)**.
 
-- **Stack:** .NET 8 + C#, NAudio for capture, WinUI 3 UI (WPF fallback).
+- **Stack:** .NET 8 + C#, NAudio for capture, WPF UI (chosen over WinUI 3 so it
+  builds on CI without the Windows App SDK workload).
 - **Zero-setup system audio** via WASAPI loopback (`WasapiLoopbackCapture`) + mic
   via `WasapiCapture`, as two separate tracks - the Windows equivalent of the
   macOS Core Audio process taps, no virtual device required.
 - **Reused logic (re-implemented in C#):** whisper.cpp transcription + You/Them
   two-track merge, Ollama/Claude summarization with map-reduce, Markdown note
   storage in the Obsidian vault. These are pure logic/HTTP/filesystem.
-- **v1 = MVP:** record → transcribe → summarize → note. Diarization, auto
-  meeting-detection, tray UI, ETA, and the in-app model downloader are deferred
-  (see the plan's Phase 7).
-- **Distribution:** GitHub Release `.msi`/MSIX + Windows download on the landing
-  page; Authenticode signing (Azure Trusted Signing) is the notarization analogue.
+- **v1 = MVP:** record → transcribe → summarize → note (Phases 0-6 shipped:
+  engine + WPF UI + in-app model download + self-contained packaging/installer).
+  Diarization, auto meeting-detection, tray UI, and ETA are deferred (plan Phase 7).
+- **Distribution:** the **Windows release** workflow (`win-v*` tag → publish →
+  zip + Inno Setup installer → GitHub Release) is wired and green; landing page has
+  a Windows download. Remaining: cut the first release and the signing below.
+- **Authenticode signing + SmartScreen (the notarization analogue).**
+  The release workflow already signs the published `.exe`s and the installer when
+  six repo secrets are set (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
+  `AZURE_CLIENT_SECRET`, `TRUSTED_SIGNING_ENDPOINT`, `TRUSTED_SIGNING_ACCOUNT`,
+  `TRUSTED_SIGNING_PROFILE`); until then the build is unsigned and Windows
+  SmartScreen warns on first run (the macOS Gatekeeper-warning equivalent). To
+  enable, set up **Azure Trusted Signing** (~$10/mo, no hardware token, the modern
+  path):
+  1. In the Azure Portal, create a **Trusted Signing account** (the service is
+     region-limited - pick a supported region) and a **certificate profile** of
+     type **Public Trust**. Note the account's **endpoint URI**, account name, and
+     profile name.
+  2. Complete Microsoft's **identity validation** (individual or organization).
+     This is the gating wait - like the Apple Developer enrollment - and can take
+     a few business days; a new individual cert also carries no SmartScreen
+     reputation until downloads accrue, so early users may still see a warning
+     that fades over time.
+  3. Create an **Azure AD app registration** (service principal) with a client
+     secret, and grant it the **Trusted Signing Certificate Profile Signer** role
+     on the signing account.
+  4. Add the six values above as GitHub **repository secrets**. The next
+     `win-v*` release then signs automatically via `azure/trusted-signing-action`
+     - no code change needed.
+  Alternative if Trusted Signing isn't available in your region: a classic **OV/EV
+  code-signing certificate** (~$200-400/yr; EV gives instant SmartScreen
+  reputation but needs a hardware token / cloud HSM) signed with `signtool` -
+  would require swapping the signing steps in the workflow.
 
 ## Summary quality
 
