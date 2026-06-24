@@ -447,8 +447,8 @@ First release of the standalone macOS app.
 
 #### Added
 - **Zero-setup capture** of system audio **and** microphone via Core Audio
-  process taps - no BlackHole or Multi-Output Device. The two sides are recorded
-  as **separate tracks** (works with Bluetooth output).
+  process taps - no virtual audio device or Multi-Output Device. The two sides are
+  recorded as **separate tracks** (works with Bluetooth output).
 - **Local transcription** via `whisper.cpp`, with **automatic language detection**
   using a multilingual model.
 - **"You vs. Them" diarization** derived from the separate tracks (no model).
@@ -471,7 +471,7 @@ First release of the standalone macOS app.
 ### [0.1.0] - 2026-06-12
 
 #### Added
-- Record microphone + system audio (e.g. BlackHole) via the Web Audio API, kept as a stereo split (mic left, system right) to preserve speaker separation.
+- Record microphone + system audio (via a loopback device) via the Web Audio API, kept as a stereo split (mic left, system right) to preserve speaker separation.
 - In-browser resampling to 16 kHz mono WAV via `OfflineAudioContext` (no `ffmpeg`).
 - Local transcription by shelling out to a `whisper.cpp` binary (`whisper-cli`).
 - Transcript written to a timestamped Markdown note with frontmatter; optional saved audio.

@@ -3,7 +3,7 @@
   "name": "AI Meeting Notes",
   "version": "0.1.0",
   "minAppVersion": "1.4.0",
-  "description": "Record meetings (your mic + system audio) and transcribe them 100% locally with whisper.cpp. Nothing leaves your machine.",
+  "description": "(Legacy - prefer the macOS/Windows desktop app.) Record meetings (your mic + system audio) and transcribe them 100% locally with whisper.cpp. Nothing leaves your machine.",
   "author": "Sergii Bataiev",
   "authorUrl": "https://github.com/servika",
   "isDesktopOnly": true
