@@ -21,6 +21,10 @@ final class RecordingController: ObservableObject {
 	private var stamp = ""
 	private var procTimer: Timer?
 	private var procStart: Date?
+	/// First reliable (elapsed, progress) sample once processing is underway, used
+	/// to extrapolate "time left" from the live rate - accurate even on the first
+	/// run, before the per-model estimate has calibrated.
+	private var progressAnchor: (t: TimeInterval, p: Double)?
 	/// Estimated total processing time for the current run (seconds); the UI shows
 	/// it counting down. 0 = unknown.
 	private var estimatedTotal: TimeInterval = 0
@@ -305,6 +309,7 @@ final class RecordingController: ObservableObject {
 
 	private func startElapsedTimer() {
 		procStart = Date()
+		progressAnchor = nil
 		elapsed = "0s"
 		remaining = ""
 		procTimer?.invalidate()
@@ -312,15 +317,31 @@ final class RecordingController: ObservableObject {
 			guard let self = self, let start = self.procStart else { return }
 			let e = Date().timeIntervalSince(start)
 			self.elapsed = Self.shortTime(e)
-			// Count down from the up-front estimate (covers transcription + the
-			// opaque summary phase, and self-calibrates over time).
-			if self.estimatedTotal > 0 {
-				let rem = self.estimatedTotal - e
-				self.remaining = rem > 2 ? "~\(Self.shortTime(rem)) left" : "finishing…"
-			} else {
-				self.remaining = ""
-			}
+			self.remaining = self.estimateRemaining(elapsed: e)
 		}
+	}
+
+	/// "Time left" string. Once real progress is flowing we extrapolate from the
+	/// observed rate (works on the very first run, no learned estimate needed);
+	/// before that we fall back to the up-front per-model estimate.
+	private func estimateRemaining(elapsed e: TimeInterval) -> String {
+		let p = progress
+		// Anchor on the first meaningful progress sample (past the initial jump to
+		// 5%), then extrapolate the remaining work from the rate since the anchor.
+		if p > 0.07, p < 0.99 {
+			if let a = progressAnchor, p > a.p + 0.01, e > a.t {
+				let rate = (p - a.p) / (e - a.t)        // progress per second
+				let rem = (1 - p) / max(rate, 0.0001)
+				return rem > 2 ? "~\(Self.shortTime(rem)) left" : "finishing…"
+			}
+			if progressAnchor == nil { progressAnchor = (e, p) }
+		}
+		// Fallback: up-front estimate (seeded by model size, calibrated over runs).
+		if estimatedTotal > 0 {
+			let rem = estimatedTotal - e
+			return rem > 2 ? "~\(Self.shortTime(rem)) left" : "finishing…"
+		}
+		return ""
 	}
 
 	// MARK: processing-time estimate (learned per transcription model)

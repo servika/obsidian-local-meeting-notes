@@ -24,6 +24,11 @@ This repo ships two apps, versioned independently:
   works; Obsidian is optional).
 
 #### Changed
+- **Accurate "time left" on the first run.** The processing ETA now extrapolates
+  from live transcription progress once it's underway, instead of relying only on
+  the per-model estimate (which isn't calibrated until you've processed at least
+  one meeting). Previously a first-run transcription could show "finishing…" for
+  minutes; now it shows a real, shrinking estimate from the start.
 - **Removed "Obsidian" wording from Settings.** The Storage section, folder field,
   and folder-picker no longer say "Obsidian vault" - they just refer to a notes
   folder (any folder works), with a one-line hint that meetings are saved as
