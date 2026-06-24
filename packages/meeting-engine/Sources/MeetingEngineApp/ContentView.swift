@@ -180,6 +180,25 @@ struct RecordPanel: View {
 				.background(RoundedRectangle(cornerRadius: 10).fill(brand.opacity(0.1)))
 				.transition(.opacity)
 			}
+			// No notes folder yet: recording can't save anywhere, so make the fix
+			// obvious instead of silently doing nothing when Record is clicked.
+			if settings.meetingsDirURL == nil && !controller.isRecording && !controller.busy {
+				HStack(spacing: 8) {
+					Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+					VStack(alignment: .leading, spacing: 1) {
+						Text("Choose a notes folder to start").font(.caption.weight(.semibold))
+						Text("Meetings are saved as Markdown in a folder you pick.")
+							.font(.caption2).foregroundStyle(.secondary)
+					}
+					Spacer(minLength: 4)
+					SettingsLink { Text("Open Settings") }
+						.controlSize(.small).buttonStyle(.borderedProminent)
+				}
+				.padding(10)
+				.background(RoundedRectangle(cornerRadius: 10).fill(Color.orange.opacity(0.12)))
+				.transition(.opacity)
+			}
+
 			HStack(spacing: 6) {
 				Image(systemName: "globe").foregroundStyle(.secondary)
 				Picker("Language", selection: $settings.language) {
@@ -211,7 +230,8 @@ struct RecordPanel: View {
 			.buttonStyle(.borderedProminent)
 			.controlSize(.large)
 			.tint(controller.isRecording ? .red : brand)
-			.disabled(controller.busy)
+			.disabled(controller.busy || (settings.meetingsDirURL == nil && !controller.isRecording))
+			.help(settings.meetingsDirURL == nil ? "Choose a notes folder in Settings first" : "")
 
 			if controller.busy {
 				if let title = activeTitle {

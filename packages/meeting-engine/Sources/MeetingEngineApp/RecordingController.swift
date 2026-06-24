@@ -44,7 +44,7 @@ final class RecordingController: ObservableObject {
 
 	func start() {
 		guard let meetingsDir = settings.meetingsDirURL else {
-			status = "Set your Obsidian vault in Settings (⌘,)."
+			status = "Choose a notes folder in Settings (⌘,) before recording."
 			return
 		}
 		let recordingsDir = meetingsDir.appendingPathComponent("recordings", isDirectory: true)

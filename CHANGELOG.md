@@ -13,6 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.26.2] - 2026-06-24
+
+#### Fixed
+- **No silent failure when no notes folder is set.** If you click Record before
+  choosing a notes folder, the record panel now shows a clear "Choose a notes
+  folder to start" banner with an **Open Settings** button, and the Record button
+  is disabled until a folder is set - instead of doing nothing with only a small
+  status line. Also reworded the prompt away from "Obsidian vault" (any folder
+  works; Obsidian is optional).
+
 ### [0.26.1] - 2026-06-24
 
 #### Added
