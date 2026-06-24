@@ -11,3 +11,4 @@ data.json
 # Bundled whisper-cli build artifact (rebuilt by scripts/build-whisper.sh)
 vendor/
 Screenshot*.png
+input/

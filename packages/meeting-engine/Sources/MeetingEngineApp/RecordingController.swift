@@ -64,7 +64,7 @@ final class RecordingController: ObservableObject {
 			let title = "Meeting \(stamp)"
 			let noteURL = meetingsDir.appendingPathComponent("\(title).md")
 			let placeholder = Self.buildNote(title: title, date: stamp, audioBase: "recordings/Meeting \(stamp)",
-				durationSeconds: 0, summary: "", transcript: "_Recording in progress…_")
+				durationSeconds: 0, speakerCount: settings.speakerRecognitionEnabled ? settings.speakerCount : 0, summary: "", transcript: "_Recording in progress…_")
 			try? placeholder.write(to: noteURL, atomically: true, encoding: .utf8)
 			store.reload(folder: meetingsDir)
 			activeID = noteURL.path
@@ -99,15 +99,18 @@ final class RecordingController: ObservableObject {
 			let noteURL = Self.existingNoteURL(audioBase: audioBase, in: meetingsDir)
 				?? meetingsDir.appendingPathComponent("Meeting \(stamp).md")
 			let title = noteURL.deletingPathExtension().lastPathComponent
+			// New recordings seed their speaker count from the current setting; it's
+			// then persisted per meeting and can be corrected before re-generating.
+			let speakers = self.settings.speakerRecognitionEnabled ? self.settings.speakerCount : 0
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, cancel: token)
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: summary, transcript: transcript)
+				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: result.duration, model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)")
 			} catch is CancelledError {
 				// Keep the recording as a re-generatable note.
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), summary: "",
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: "",
 					transcript: "_Transcription stopped. Open this meeting and click Re-generate to process it._")
 				try? note.write(to: noteURL, atomically: true, encoding: .utf8)
 				self.finish(status: "Stopped - re-generate when ready")
@@ -119,7 +122,8 @@ final class RecordingController: ObservableObject {
 	}
 
 	/// Re-transcribe + re-summarize an existing meeting from its saved audio.
-	func regenerate(_ meeting: Meeting) {
+	/// `speakerCount` overrides the note's stored count (nil keeps it as-is).
+	func regenerate(_ meeting: Meeting, speakerCount: Int? = nil) {
 		guard !busy, !isRecording else { return }
 		busy = true
 		progress = 0
@@ -140,6 +144,10 @@ final class RecordingController: ObservableObject {
 			let systemWav = meetingsDir.appendingPathComponent(audioBase + ".system.wav").path
 			let micWav = meetingsDir.appendingPathComponent(audioBase + ".mic.wav").path
 			let dur = Int(Self.frontmatterValue("duration", in: content) ?? "") ?? Self.audioDurationSeconds(systemWav: systemWav, micWav: micWav)
+			// An explicit override wins; otherwise keep whatever the note recorded.
+			let speakers = self.settings.speakerRecognitionEnabled
+				? (speakerCount ?? Int(Self.frontmatterValue("speakers", in: content) ?? "") ?? 0)
+				: 0
 
 			guard FileManager.default.fileExists(atPath: systemWav) || FileManager.default.fileExists(atPath: micWav) else {
 				self.finish(status: "No saved audio found for this meeting.")
@@ -148,8 +156,8 @@ final class RecordingController: ObservableObject {
 			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
 			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, cancel: token)
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, summary: summary, transcript: transcript)
+				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Re-generated \(title)")
@@ -165,22 +173,43 @@ final class RecordingController: ObservableObject {
 
 	/// Transcribe both tracks (with weighted progress) and summarize. Runs on a
 	/// background queue; updates `progress`/`status` on the main queue.
-	private func transcribeAndSummarize(systemWav: String, micWav: String, cancel: CancelToken) throws -> (transcript: String, summary: String) {
+	private func transcribeAndSummarize(systemWav: String, micWav: String, speakerCount: Int, cancel: CancelToken) throws -> (transcript: String, summary: String) {
 		let lang = settings.language.isEmpty ? "auto" : settings.language
 		let model = (settings.modelPath(for: lang) as NSString).expandingTildeInPath
 		let hint = settings.transcriptionPrompt
 		let setProgress: (Double) -> Void = { p in DispatchQueue.main.async { self.progress = p } }
 
-		DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
-		let them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, prompt: hint, speaker: "Them",
-			progress: { setProgress(0.05 + $0 * 0.45) }, cancel: cancel, log: { _ in })
-		let you = try Transcriber.transcribe(wavPath: micWav, model: model, language: lang, prompt: hint, speaker: "You",
-			progress: { setProgress(0.50 + $0 * 0.40) }, cancel: cancel, log: { _ in })
-		let transcript = Transcriber.diarizedMarkdown(them + you)
+		// Stage 1: transcription (opt-out). When off, we keep just the audio note.
+		var transcript = ""
+		if settings.transcribeMeetings {
+			DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
+			var them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, prompt: hint, speaker: "Them",
+				progress: { setProgress(0.05 + $0 * 0.45) }, cancel: cancel, log: { _ in })
+			let you = try Transcriber.transcribe(wavPath: micWav, model: model, language: lang, prompt: hint, speaker: "You",
+				progress: { setProgress(0.50 + $0 * 0.38) }, cancel: cancel, log: { _ in })
+
+			// Experimental: split the single "Them" into per-speaker labels by running
+			// diarization on the system track and relabeling its segments by overlap.
+			// Best-effort - on any failure we keep the plain "Them" transcript.
+			if settings.speakerRecognitionEnabled, Diarizer.isAvailable() {
+				DispatchQueue.main.async { self.status = "Identifying speakers…"; self.progress = 0.90 }
+				do {
+					let spans = try Diarizer.diarize(wavPath: systemWav, speakerCount: speakerCount, cancel: cancel, log: { _ in })
+					them = Diarizer.relabel(them, using: spans)
+				} catch is CancelledError {
+					throw CancelledError()
+				} catch {
+					DispatchQueue.main.async { self.status = "Speaker recognition skipped: \(error)" }
+				}
+			}
+			transcript = Transcriber.diarizedMarkdown(them + you)
+		}
 
 		if cancel.isCancelled { throw CancelledError() }
+
+		// Stage 2: summary (opt-out). Needs a transcript and a configured engine.
 		var summary = ""
-		if let engine = Self.engine(from: settings) {
+		if settings.summarizeMeetings, !transcript.isEmpty, let engine = Self.engine(from: settings) {
 			DispatchQueue.main.async { self.status = "Summarizing…"; self.progress = 0.92 }
 			let prompt = settings.currentPrompt().replacingOccurrences(of: "{{language}}", with: Self.languageName(lang))
 			do { summary = try Summarizer.summarize(transcript: transcript, prompt: prompt, engine: engine) }
@@ -221,10 +250,11 @@ final class RecordingController: ObservableObject {
 		}
 	}
 
-	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, summary: String, transcript: String) -> String {
+	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, speakerCount: Int = 0, summary: String, transcript: String) -> String {
 		let audioName = (audioBase as NSString).lastPathComponent
 		var s = "---\ntype: meeting\ntags: [meeting]\ndate: \(date)\naudio: \(audioBase)\n"
 		if durationSeconds > 0 { s += "duration: \(durationSeconds)\n" }
+		if speakerCount >= 2 { s += "speakers: \(speakerCount)\n" }
 		s += "app_version: \(appVersion)\n"
 		s += "---\n\n# \(title)\n\n"
 		if !summary.isEmpty { s += summary + "\n\n" }

@@ -29,6 +29,19 @@ chmod +x "$APP/Contents/Resources/whisper-cli"
 # VAD model (data file, no signing needed) - enables skipping non-speech.
 cp vendor/ggml-silero-v5.1.2.bin "$APP/Contents/Resources/ggml-silero-v5.1.2.bin"
 
+# Experimental speaker recognition: bundle the sherpa-onnx diarization binary +
+# ONNX models if present in vendor/ (see scripts/setup-diarization.sh). Optional
+# - when absent the "Recognize speakers" toggle just stays disabled.
+DIAR_BIN="vendor/sherpa-onnx-offline-speaker-diarization"
+if [ -f "$DIAR_BIN" ]; then
+	echo "  bundling speaker recognition (sherpa-onnx)..."
+	cp "$DIAR_BIN" "$APP/Contents/Resources/"
+	chmod +x "$APP/Contents/Resources/sherpa-onnx-offline-speaker-diarization"
+	for onnx in vendor/*.onnx; do
+		[ -f "$onnx" ] && cp "$onnx" "$APP/Contents/Resources/"
+	done
+fi
+
 # Generate + embed the app icon (best-effort).
 if swift scripts/make-icon.swift "$APP/Contents/Resources/AppIcon.icns" >/dev/null 2>&1; then
 	ICON_KEY="	<key>CFBundleIconFile</key><string>AppIcon</string>"
@@ -65,6 +78,8 @@ PLIST
 if [ -n "${DEVELOPER_ID_APP:-}" ]; then
 	echo "  signing with Developer ID: $DEVELOPER_ID_APP"
 	codesign --force --options runtime --sign "$DEVELOPER_ID_APP" "$APP/Contents/Resources/whisper-cli"
+	[ -f "$APP/Contents/Resources/sherpa-onnx-offline-speaker-diarization" ] && \
+		codesign --force --options runtime --sign "$DEVELOPER_ID_APP" "$APP/Contents/Resources/sherpa-onnx-offline-speaker-diarization"
 	codesign --force --deep --options runtime \
 		--entitlements scripts/app.entitlements \
 		--sign "$DEVELOPER_ID_APP" "$APP"

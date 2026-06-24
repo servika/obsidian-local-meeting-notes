@@ -28,16 +28,17 @@ exits after each transcription.)
   ($99/yr). Until then the app is ad-hoc signed (Gatekeeper warning on other
   Macs). Mac App Store is ruled out - the sandbox forbids process-tap
   system-audio capture and shelling out to `whisper-cli`.
+- **Check for a new version.**
+  Let the app notice when a newer release is available and tell the user
+  (with a link / one-click update). Compare the running `VERSION` against the
+  latest published release (e.g. the GitHub Releases API or a small hosted
+  version manifest), check on launch (throttled) and on demand, and surface an
+  unobtrusive "update available" prompt. Keep it privacy-safe: a single
+  outbound check, no telemetry. Pairs with proper signing/notarization above so
+  the downloaded update isn't Gatekeeper-blocked.
 
 ## Summary quality
 
-- ✅ **Map-reduce summarization for long meetings.** Shipped in 0.22.0.
-  Transcripts over ~40k chars are split into ~24k-char chunks (fits even modest
-  context windows), each summarized into partial notes (map), then combined into
-  the final summary (reduce). Even coverage regardless of length, and smaller
-  models can handle long meetings. The model is kept loaded between chunks
-  (`keep_alive` during map) and unloaded after the final pass. Possible
-  follow-up: recursive reduce if the combined partials themselves get large.
 - **Meeting category (1:1, daily sync, planning, …).**
   Add a `category:` frontmatter field (NOT `type:` - that's already
   `type: meeting`). Levels, in order of value:
@@ -52,62 +53,74 @@ exits after each transcription.)
 
 ## Capture & product (the "Notion-grade" roadmap)
 
-- ✅ **Tighter Obsidian note integration.** Shipped in 0.17.0. Notes now
-  embed both audio tracks (`![[… .mic.wav]]` / `… .system.wav`) in an Audio
-  section so Obsidian shows inline players, and carry `tags: [meeting]` for
-  querying (alongside the existing `type: meeting`). The app hides the Audio
-  section (it accesses recordings directly). Possible follow-up: auto-fill a
-  `participants` field once real speaker identification exists.
 - **localhost API + Obsidian plugin integration.**
   The original hybrid plan: native app as the capture/transcription daemon,
   the Obsidian plugin as a client that reads/queries meetings.
-- **Real multi-speaker diarization.**
-  Go beyond the current track-based You/Them split to identify individual
-  speakers. The two-track setup helps: the **mic track is already cleanly
-  "You"**, so only the **system track** (remote participants) needs diarizing.
+- **Real multi-speaker diarization** (phase 1 shipped in 0.23.0 as the
+  experimental "Recognize speakers" toggle - see Completed). Remaining phases:
+  - **Phase 2:** UI to **rename speakers** per meeting (and persist the mapping).
+  - **Phase 3:** Auto-name from **calendar attendees** / LLM inference, once those land.
 
-  Pipeline:
-  1. **Segmentation** - detect speaker-change boundaries on the system track.
-  2. **Speaker embeddings** - a voice-fingerprint vector per segment.
-  3. **Clustering** - group segments into N speakers (auto-estimate count, or let
-     the user set it).
-  4. **Merge** - align speaker spans with whisper's timestamped segments (we
-     already have per-segment timestamps) so each transcript line gets a speaker.
-
-  **Tech:** bundle **sherpa-onnx** (ONNX Runtime, C++) - does segmentation +
-  embeddings + clustering, ships as a native binary + small ONNX models (same
-  pattern as the bundled `whisper-cli` and Silero VAD), offline/privacy-safe.
-  Rejected: pyannote.audio (drags in Python + PyTorch); whisper.cpp `--diarize`
-  (English-only turn detection via tinydiarize - useless for Ukrainian).
-
-  **Caveats:** accuracy varies on real meeting audio (compression, varied remote
-  mics, overlapping speech - "good not perfect"); unknown speaker count; naming
-  is a *separate* problem (diarization yields "Speaker 1/2/3", not names).
-
-  **Phased plan:**
-  1. Diarize the system track into `Them 1 / Them 2 / …`; keep "You" from the mic
-     track. Ships the core value.
-  2. UI to **rename speakers** per meeting (and persist the mapping).
-  3. Auto-name from **calendar attendees** / LLM inference, once those land.
-  Worth a small prototype spike first: run sherpa-onnx on an existing
-  `*.system.wav` to gauge real-world accuracy before committing.
+  Other follow-ups now that the pipeline exists: ~~let the user pin the speaker
+  count~~ (done in 0.25.0 - per-meeting count, since auto-estimate proved
+  unreliable on real audio), expose the clustering threshold, try a better
+  embedding model (wespeaker over-split least in testing), and fold the mic
+  "You" track into the embedding space so a remote echo of the user isn't
+  counted as a separate "Them".
 - **Chat over meetings (RAG).**
   Ask questions across the meeting archive.
- 
+
 ## Security & polish
 
-- ✅ **Estimate transcription time (ETA).** Shipped. An up-front estimate from
-  audio length × a **learned per-model end-to-end rate** (self-calibrating EMA,
-  seeded by model size), shown counting down in the record panel and the meeting
-  processing bar - covers transcription *and* the opaque summary phase. Replaced
-  the 0.18.0 progress-extrapolation ETA, which couldn't see the summary phase.
-  Rates persist in UserDefaults (`procRate.<model>`).
 - **Keychain for the Claude API key.**
   Currently stored in UserDefaults as plaintext; move it to the Keychain.
 - **Add more meeting languages.**
   Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
   language list in `meetingLanguages` beyond English/Ukrainian in a future
   release, so users can pin other languages for best transcription quality.
+
+## Completed
+
+See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
+
+- ✅ **Map-reduce summarization for long meetings.** Shipped in 0.22.0.
+  Transcripts over ~40k chars are split into ~24k-char chunks (fits even modest
+  context windows), each summarized into partial notes (map), then combined into
+  the final summary (reduce). Even coverage regardless of length, and smaller
+  models can handle long meetings. The model is kept loaded between chunks
+  (`keep_alive` during map) and unloaded after the final pass. Possible
+  follow-up: recursive reduce if the combined partials themselves get large.
+- ✅ **Per-stage processing controls.** Shipped in 0.24.0. Settings →
+  "Processing steps" toggles for Transcribe and Summarize, each disabled with an
+  inline note when its dependency is missing (no whisper model → no
+  transcription; no local model / Claude key → no summary). Replaced the summary
+  engine "None" option (migrated to the toggle).
+- ✅ **Experimental mode + per-meeting speaker count.** Shipped in 0.25.0. A
+  master "Experimental features" switch gates R&D features (off by default).
+  Speaker recognition now lets you set the exact number of remote speakers per
+  meeting (stored in `speakers:` frontmatter), since auto-detect proved
+  unreliable on real audio.
+- ✅ **Multi-speaker diarization - phase 1 (experimental).** Shipped in 0.23.0
+  as the "Recognize speakers" toggle. Runs sherpa-onnx (segmentation + speaker
+  embeddings + clustering, native/offline) on the **system track** and relabels
+  whisper's segments by time overlap into `Them 1 / Them 2 / …`; the mic track
+  stays "You". Off by default; the toggle is disabled until the binary + ONNX
+  models are installed (`scripts/setup-diarization.sh`), bundled into the app
+  when present. Threshold-based clustering auto-estimates the speaker count.
+  Remaining phases (rename UI, calendar/LLM auto-naming) are under Capture &
+  product.
+- ✅ **Tighter Obsidian note integration.** Shipped in 0.17.0. Notes now
+  embed both audio tracks (`![[… .mic.wav]]` / `… .system.wav`) in an Audio
+  section so Obsidian shows inline players, and carry `tags: [meeting]` for
+  querying (alongside the existing `type: meeting`). The app hides the Audio
+  section (it accesses recordings directly). Possible follow-up: auto-fill a
+  `participants` field once real speaker identification exists.
+- ✅ **Estimate transcription time (ETA).** Shipped. An up-front estimate from
+  audio length × a **learned per-model end-to-end rate** (self-calibrating EMA,
+  seeded by model size), shown counting down in the record panel and the meeting
+  processing bar - covers transcription *and* the opaque summary phase. Replaced
+  the 0.18.0 progress-extrapolation ETA, which couldn't see the summary phase.
+  Rates persist in UserDefaults (`procRate.<model>`).
 
 ## Postponed
 

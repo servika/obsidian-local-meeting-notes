@@ -13,7 +13,73 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
-### [0.22.1] - 2026-06-20
+### [0.26.0] - 2026-06-21
+
+#### Changed
+- **Feature-flag system for experiments.** Experimental features are now driven
+  by a small catalog of flags (`FeatureFlag`) instead of one-off booleans. Each
+  flag's on/off state lives in `featureFlags` and only takes effect when
+  Experimental mode is on; the Settings UI renders a toggle (with description and
+  a dependency/availability note) for every flag automatically. Adding a new
+  experiment is now one enum case. Speaker recognition is the first flag, and its
+  on/off moved to General → Experimental features (its speaker-count config stays
+  in the Transcription tab). The legacy `recognizeSpeakers` setting is migrated
+  automatically.
+- **Refactor: summary prompts extracted.** The baked-in per-model summary prompts
+  moved out of `AppSettings` into a dedicated `SummaryPrompts` file, leaving the
+  settings type focused on persisted state.
+- **About: trimmed personal links.** The About tab now shows only the project
+  GitHub link; the personal Website and LinkedIn links were removed.
+
+### [0.25.0] - 2026-06-21
+
+#### Added
+- **Experimental mode.** A master switch in Settings → General → "Experimental
+  features" that gates new, in-development R&D features. Off by default, so the
+  regular experience is unchanged; speaker recognition (and future experiments)
+  only appear and run when it's on.
+- **Per-meeting speaker count.** When speaker recognition is on, you can set how
+  many remote speakers are on the call instead of relying on auto-detection
+  (which is unreliable on real, mixed/compressed meeting audio - verified on a
+  real daily sync where auto-detect found 70+ "speakers"). The count is stored
+  per meeting in the note's `speakers:` frontmatter, can be set before recording
+  (record panel) or corrected on an existing meeting and applied via
+  Re-generate, and is passed to sherpa-onnx as a fixed cluster count.
+
+#### Changed
+- Speaker recognition is now gated behind Experimental mode (it was previously
+  always visible in the Transcription tab).
+
+### [0.24.0] - 2026-06-21
+
+#### Added
+- **Per-stage processing controls.** Settings → General → "Processing steps" now
+  has explicit toggles for each step after a recording stops: **Transcribe
+  meetings** and **Generate summary & action items**. Audio is always saved; you
+  can keep audio-only, transcript-only, or the full transcript + summary.
+- **Availability gating with notes.** Each toggle is disabled when its
+  dependency is missing, with an inline explanation - e.g. transcription is
+  unavailable until a whisper model is downloaded, and summary generation is
+  unavailable (and noted) when no local Ollama model is selected or no Claude API
+  key is set. The summary step also requires transcription to be on.
+
+#### Changed
+- Removed the summary engine **"None"** option; turning summaries off now lives
+  in the new Processing steps section (existing "None" setups are migrated to the
+  toggle automatically).
+
+### [0.23.0] - 2026-06-21
+
+#### Added
+- **Recognize speakers (experimental).** Optionally splits the remote side of a
+  call into separate speakers - "Them 1", "Them 2", … - instead of a single
+  "Them". Runs sherpa-onnx speaker diarization (segmentation + speaker
+  embeddings + clustering, all native/offline) on the **system-audio track**
+  only; your own mic stays cleanly "You". Whisper's system-track segments are
+  relabeled by time overlap with the detected speaker spans. Off by default;
+  enable it under Settings → Transcription. The toggle stays disabled until the
+  binary + models are installed via `scripts/setup-diarization.sh`. Accuracy
+  varies with audio quality and overlapping speech, and it adds processing time.
 
 #### Fixed
 - **Map-reduce was triggering too early and hurting coverage.** The char→token

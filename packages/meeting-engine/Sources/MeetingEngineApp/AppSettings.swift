@@ -1,5 +1,4 @@
 import Foundation
-import MeetingEngineCore
 
 /// Persisted app settings (UserDefaults-backed).
 final class AppSettings: ObservableObject {
@@ -14,7 +13,20 @@ final class AppSettings: ObservableObject {
 	/// Optional initial prompt passed to whisper to bias spelling/vocabulary
 	/// (participant names, product/company terms, language). Improves accuracy.
 	@Published var transcriptionPrompt: String { didSet { d.set(transcriptionPrompt, forKey: "transcriptionPrompt") } }
-	@Published var summaryEngine: String { didSet { d.set(summaryEngine, forKey: "summaryEngine") } } // none|ollama|claude
+	/// Master switch for in-development R&D features. Off by default so the
+	/// general experience is unaffected; individual experiments are only visible
+	/// and active when this is on.
+	@Published var experimentalMode: Bool { didSet { d.set(experimentalMode, forKey: "experimentalMode") } }
+	/// Per-flag on/off state for R&D features (keyed by `FeatureFlag.rawValue`).
+	/// Read via `isEnabled(_:)` / `flagValue(_:)` (see FeatureFlags.swift).
+	@Published var featureFlags: [String: Bool] { didSet { d.set(featureFlags, forKey: "featureFlags") } }
+	/// Default number of remote speakers for a new recording (0 = Auto-estimate).
+	/// Stored per meeting in the note's `speakers:` frontmatter; this is the seed.
+	@Published var speakerCount: Int { didSet { d.set(speakerCount, forKey: "speakerCount") } }
+	/// Pipeline stage toggles - let the user run only the steps they want.
+	@Published var transcribeMeetings: Bool { didSet { d.set(transcribeMeetings, forKey: "transcribeMeetings") } }
+	@Published var summarizeMeetings: Bool { didSet { d.set(summarizeMeetings, forKey: "summarizeMeetings") } }
+	@Published var summaryEngine: String { didSet { d.set(summaryEngine, forKey: "summaryEngine") } } // ollama|claude
 	@Published var ollamaURL: String { didSet { d.set(ollamaURL, forKey: "ollamaURL") } }
 	@Published var ollamaModel: String { didSet { d.set(ollamaModel, forKey: "ollamaModel") } }
 	@Published var claudeAPIKey: String { didSet { d.set(claudeAPIKey, forKey: "claudeAPIKey") } }
@@ -33,7 +45,20 @@ final class AppSettings: ObservableObject {
 		language = d.string(forKey: "language") ?? "auto"
 		suggestOnMeetingDetected = (d.object(forKey: "suggestOnMeetingDetected") as? Bool) ?? true
 		transcriptionPrompt = d.string(forKey: "transcriptionPrompt") ?? ""
+		experimentalMode = (d.object(forKey: "experimentalMode") as? Bool) ?? false
+		var flags = (d.dictionary(forKey: "featureFlags") as? [String: Bool]) ?? [:]
+		// Migrate the standalone legacy `recognizeSpeakers` bool into the flag set.
+		if let legacy = d.object(forKey: "recognizeSpeakers") as? Bool {
+			if flags[FeatureFlag.speakerRecognition.rawValue] == nil { flags[FeatureFlag.speakerRecognition.rawValue] = legacy }
+			d.removeObject(forKey: "recognizeSpeakers")
+		}
+		featureFlags = flags
+		speakerCount = d.integer(forKey: "speakerCount") // 0 (Auto) when unset
 		summaryEngine = d.string(forKey: "summaryEngine") ?? "ollama"
+		transcribeMeetings = (d.object(forKey: "transcribeMeetings") as? Bool) ?? true
+		// Migrate the legacy "None" summary engine to the explicit Summarize toggle:
+		// a stored toggle wins; otherwise summary is on unless the engine was "none".
+		summarizeMeetings = (d.object(forKey: "summarizeMeetings") as? Bool) ?? (d.string(forKey: "summaryEngine") != "none")
 		ollamaURL = d.string(forKey: "ollamaURL") ?? "http://localhost:11434"
 		ollamaModel = d.string(forKey: "ollamaModel") ?? ""
 		claudeAPIKey = d.string(forKey: "claudeAPIKey") ?? ""
@@ -45,6 +70,8 @@ final class AppSettings: ObservableObject {
 		// `promptOverrides` and are only set when the user edits a prompt.
 		d.removeObject(forKey: "summaryPrompt")
 		modelByLanguage = (d.dictionary(forKey: "modelByLanguage") as? [String: String]) ?? [:]
+		// Now that all stored properties are set, finish the "None"->toggle migration.
+		if summaryEngine == "none" { summaryEngine = "ollama" }
 	}
 
 	/// The whisper model to use for a given language code: a per-language
@@ -74,6 +101,43 @@ final class AppSettings: ObservableObject {
 		return URL(fileURLWithPath: vp).appendingPathComponent(meetingsFolder, isDirectory: true)
 	}
 
+	/// Speaker recognition is active only when both the experiment master switch
+	/// and its flag are on. Convenience alias for the most-used flag.
+	var speakerRecognitionEnabled: Bool { isEnabled(.speakerRecognition) }
+
+	// MARK: stage availability
+
+	/// Whether a usable whisper model exists for the current language. When false,
+	/// transcription can't run (the toggle is shown but disabled).
+	var transcriptionAvailable: Bool {
+		let lang = language.isEmpty ? "auto" : language
+		let p = (modelPath(for: lang) as NSString).expandingTildeInPath
+		return !p.isEmpty && FileManager.default.fileExists(atPath: p)
+	}
+
+	var transcriptionUnavailableReason: String? {
+		transcriptionAvailable ? nil : "No whisper model installed - download one in the Transcription tab."
+	}
+
+	/// Whether the chosen summary engine is fully configured (a local model is
+	/// selected, or a Claude API key is set). Summary also requires transcription.
+	var summaryAvailable: Bool { summaryUnavailableReason == nil }
+
+	var summaryUnavailableReason: String? {
+		switch summaryEngine {
+		case "ollama":
+			return ollamaModel.trimmingCharacters(in: .whitespaces).isEmpty
+				? "No local model selected - install one (e.g. `ollama pull \("qwen2.5:7b")`) and pick it in the Summary tab."
+				: nil
+		case "claude":
+			return claudeAPIKey.trimmingCharacters(in: .whitespaces).isEmpty
+				? "Add your Claude API key in the Summary tab."
+				: nil
+		default:
+			return "Choose a summary engine in the Summary tab."
+		}
+	}
+
 	/// The model the summary will use (depends on the chosen engine).
 	var activeSummaryModel: String {
 		summaryEngine == "claude" ? claudeModel : ollamaModel
@@ -81,7 +145,7 @@ final class AppSettings: ObservableObject {
 
 	func currentPrompt() -> String {
 		if let p = promptOverrides[activeSummaryModel], !p.isEmpty { return p }
-		return Self.defaultPrompt(for: activeSummaryModel)
+		return SummaryPrompts.defaultPrompt(for: activeSummaryModel)
 	}
 
 	func setCurrentPrompt(_ p: String) {
@@ -99,96 +163,4 @@ final class AppSettings: ObservableObject {
 	var currentPromptIsCustom: Bool {
 		promptOverrides[activeSummaryModel] != nil
 	}
-
-	// MARK: baked-in default prompts (matched by model name)
-
-	static func defaultPrompt(for model: String) -> String {
-		let m = model.lowercased()
-		if m.contains("gpt-oss") { return gptOssPrompt }
-		if m.contains("qwen") { return qwenPrompt }
-		if m.contains("llama") { return llamaPrompt }
-		return Summarizer.defaultPrompt
-	}
-
-	/// Tuned for gpt-oss (harmony-style channel tags).
-	static let gptOssPrompt = #"""
-	<|system|>
-	You extract structured meeting notes from transcripts. You are precise and never invent information that is not in the transcript.
-
-	Rules:
-	1. Output ONLY valid Markdown. No preamble, no explanation, no sign-off.
-	2. Use EXACTLY four sections, in this order: ## Short summary, ## Summary, ## Topics discussed, ## Action items.
-	3. Short summary = 1-2 sentences capturing the single most important outcome.
-	4. Summary = one or two short paragraphs stating who met, the main topics, key decisions, and the outcome.
-	5. Topics discussed = for each distinct topic or block raised, a "### " subheading naming the topic, then 1-3 short paragraphs and bullet points describing what was said or decided about it.
-	6. Action items = a checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are zero action items, write "- None identified."
-	7. "You" = the user who recorded the transcript. "Them" = the other participant(s).
-	8. Do NOT add sections, headers, or content beyond what is specified above.
-
-	<|user|>
-	Transcript:
-	"""
-	{{transcript}}
-	"""
-
-	Summarize this meeting. Follow the rules exactly.
-	"""#
-
-	/// Tuned for Llama-family models (llama3.x). Plain-instruction style - Ollama
-	/// applies the model's own chat template, so no special tokens are needed.
-	/// Llama tends to add chatty preambles, so the no-preamble rule is repeated.
-	static let llamaPrompt = """
-	You are an expert meeting-notes assistant. You are given a meeting transcript whose lines are labeled "You" (the person who recorded the meeting) and "Them" (the other participant(s)).
-
-	Produce clean Markdown with EXACTLY these four sections, in this exact order, using these exact headings:
-
-	## Short summary
-	One or two sentences capturing the single most important outcome of the meeting.
-
-	## Summary
-	One or two short paragraphs covering who met, the main topics, the key decisions, and the outcome.
-
-	## Topics discussed
-	For each distinct topic raised, write a "### " subheading naming the topic, then 1-2 short paragraphs (use bullet points where it helps) describing what was said or decided about it. Cover every significant topic; do not merge unrelated topics.
-
-	## Action items
-	A checkbox list. Each line: "- [ ] <task> - <owner>" (use "Owner TBD" if no one was assigned). If there are no action items, write exactly "- None identified."
-
-	Strict rules:
-	- Use only information present in the transcript. Never invent names, numbers, dates, decisions, or tasks.
-	- Output ONLY the four sections above. No preamble, no "Here is...", no notes, no sign-off.
-	- Keep it concise and factual.
-
-	Transcript:
-	{{transcript}}
-	"""
-
-	/// Tuned for Qwen models (qwen2.5 / qwen3). Qwen is strong at structured
-	/// output on clean transcripts but, on fragmented speech-recognition text, it
-	/// tends to refuse or go chatty - so the rules forbid that explicitly.
-	static let qwenPrompt = """
-	You write meeting notes from a transcript whose lines are labeled "You" (the person who recorded it) and "Them" (the other participant(s)). It is speech-recognition output, so it may be fragmented or informal - work with whatever is there.
-
-	Output Markdown with ALL FOUR of these headings, in this exact order and spelling. You MUST include every heading, even ## Topics discussed - never omit it:
-
-	## Short summary
-	1-2 sentences with the single most important outcome.
-
-	## Summary
-	1-2 short paragraphs covering the whole meeting - beginning, middle, and end, not just the last part.
-
-	## Topics discussed
-	For EACH distinct topic, a "### " subheading naming the topic, then 2-5 sentences about what was said or decided. Include every significant topic from the entire meeting. Keep amounts (e.g. $250), limits, dates, and names exactly as in the transcript.
-
-	## Action items
-	A checkbox list: "- [ ] <task> - <owner> - <deadline>" (use "Owner TBD" if unassigned; include a deadline only if explicitly stated). One line per real commitment. If there are genuinely none, write a single "- None identified." line and nothing else.
-
-	Rules:
-	- NEVER refuse, ask for clarification, or add any preamble or closing remarks. Output only the four sections.
-	- Keep the four section headings EXACTLY in English as written above (## Short summary, ## Summary, ## Topics discussed, ## Action items). Write the body text in {{language}}.
-	- Use names exactly as spoken; never translate or invent names, numbers, amounts, or dates.
-
-	Transcript:
-	{{transcript}}
-	"""
 }

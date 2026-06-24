@@ -10,6 +10,9 @@ struct Meeting: Identifiable, Hashable {
 	let durationSeconds: Int
 	/// The app version that generated this note (empty for pre-versioning notes).
 	let appVersion: String
+	/// Fixed remote-speaker count for diarization (`speakers:` frontmatter);
+	/// 0 means Auto-estimate.
+	let speakerCount: Int
 	/// Lowercased title + body, for searching.
 	let searchHay: String
 }
@@ -39,13 +42,14 @@ final class MeetingStore: ObservableObject {
 				let content = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
 				let dur = Int(RecordingController.frontmatterValue("duration", in: content) ?? "") ?? 0
 				let ver = RecordingController.frontmatterValue("app_version", in: content) ?? ""
+				let speakers = Int(RecordingController.frontmatterValue("speakers", in: content) ?? "") ?? 0
 				let title = url.deletingPathExtension().lastPathComponent
 				// Order by the meeting's own timestamp so re-transcribing (which
 				// touches the file's mtime) never reorders the list.
 				let dateStr = RecordingController.frontmatterValue("date", in: content) ?? ""
 				let date = Self.dateFormatter.date(from: dateStr) ?? mod
 				let hay = (title + "\n" + content).lowercased()
-				return Meeting(id: url.path, url: url, title: title, modified: mod, date: date, durationSeconds: dur, appVersion: ver, searchHay: hay)
+				return Meeting(id: url.path, url: url, title: title, modified: mod, date: date, durationSeconds: dur, appVersion: ver, speakerCount: speakers, searchHay: hay)
 			}
 			.sorted { $0.date > $1.date }
 	}

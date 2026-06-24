@@ -43,6 +43,22 @@ struct SettingsView: View {
 		return "qwen2.5:3b"
 	}
 
+	/// Whether the diarization binary + models are installed (drives the toggle).
+	private var speakerRecognitionAvailable: Bool { Diarizer.isAvailable() }
+	private var speakerRecognitionUnavailableReason: String? { Diarizer.unavailableReason() }
+
+	/// Per-flag dependency checks - a flag may need extra binaries/models before
+	/// it can be turned on.
+	private func isFlagAvailable(_ flag: FeatureFlag) -> Bool {
+		flagUnavailableReason(flag) == nil
+	}
+
+	private func flagUnavailableReason(_ flag: FeatureFlag) -> String? {
+		switch flag {
+		case .speakerRecognition: return speakerRecognitionUnavailableReason
+		}
+	}
+
 	private func modelFileExists(_ path: String) -> Bool {
 		let p = (path as NSString).expandingTildeInPath
 		return !p.isEmpty && FileManager.default.fileExists(atPath: p)
@@ -118,6 +134,44 @@ struct SettingsView: View {
 				Text("Shows a \"Start recording?\" nudge when another app (Zoom, Teams, Meet, FaceTime…) starts using your microphone. Never records on its own.")
 					.font(.caption).foregroundStyle(.secondary)
 			}
+
+			Section("Processing steps") {
+				Text("Choose what happens after a recording stops. Audio is always saved; turn off the steps you don't need.")
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
+
+				Toggle("Transcribe meetings", isOn: $settings.transcribeMeetings)
+					.disabled(!settings.transcriptionAvailable)
+				if settings.transcribeMeetings, let reason = settings.transcriptionUnavailableReason {
+					stageNote(reason)
+				}
+
+				Toggle("Generate summary & action items", isOn: $settings.summarizeMeetings)
+					.disabled(!settings.transcribeMeetings || !settings.summaryAvailable)
+				if !settings.transcribeMeetings {
+					stageNote("Turn on transcription first - the summary is generated from the transcript.")
+				} else if settings.summarizeMeetings, let reason = settings.summaryUnavailableReason {
+					stageNote(reason)
+				}
+			}
+
+			Section("Experimental features") {
+				Toggle("Enable experimental features", isOn: $settings.experimentalMode)
+				Text("Turns on new, in-development R&D features. These are rough around the edges and may change or be removed - off by default so the regular experience is unaffected.")
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
+
+				ForEach(FeatureFlag.allCases) { flag in
+					Toggle(flag.title, isOn: settings.flagBinding(flag))
+						.disabled(!settings.experimentalMode || !isFlagAvailable(flag))
+					Text(flag.details)
+						.font(.caption).foregroundStyle(.secondary)
+						.fixedSize(horizontal: false, vertical: true)
+					if settings.experimentalMode, let reason = flagUnavailableReason(flag) {
+						stageNote("Unavailable: \(reason).")
+					}
+				}
+			}
 		}
 		.formStyle(.grouped)
 		.tabItem { Label("General", systemImage: "folder") }
@@ -190,6 +244,18 @@ struct SettingsView: View {
 				}
 			}
 
+				if settings.isEnabled(.speakerRecognition), speakerRecognitionAvailable {
+					Section("Speaker recognition") {
+						Picker("Speakers on the call (their side)", selection: $settings.speakerCount) {
+							Text("Auto-detect").tag(0)
+							ForEach(2...8, id: \.self) { Text("\($0)").tag($0) }
+						}
+						Text("Auto-detect is unreliable on real meeting audio - setting the exact number of remote speakers gives much better results. This is the default for new recordings; each meeting also keeps its own count (editable before re-generating). Turn the feature on/off under General → Experimental features.")
+							.font(.caption).foregroundStyle(.secondary)
+							.fixedSize(horizontal: false, vertical: true)
+					}
+				}
+
 			Section("Model per language (optional)") {
 				Text("Pick a downloaded model per language - e.g. large-v3 for Ukrainian. Meetings in any language without an override use the default model above. Download models in the Transcription tab first.")
 					.font(.caption).foregroundStyle(.secondary)
@@ -236,10 +302,11 @@ struct SettingsView: View {
 		Form {
 			Section("Summary & action items") {
 				Picker("Engine", selection: $settings.summaryEngine) {
-					Text("None").tag("none")
 					Text("Local (Ollama)").tag("ollama")
 					Text("Claude API").tag("claude")
 				}
+				Text("Turn summaries on or off under General → Processing steps.")
+					.font(.caption).foregroundStyle(.secondary)
 
 				if settings.summaryEngine == "ollama" {
 					TextField("Ollama URL", text: $settings.ollamaURL)
@@ -303,18 +370,10 @@ struct SettingsView: View {
 					Text("Version \(Self.appVersion)")
 						.font(.caption).foregroundStyle(.secondary)
 					HStack(spacing: 18) {
-						Link(destination: URL(string: "https://sergb.com/")!) {
-							Label("Website", systemImage: "globe")
-						}
-						.help("sergb.com")
 						Link(destination: URL(string: "https://github.com/servika/ai-meeting-notes")!) {
 							Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
 						}
 						.help("Project on GitHub")
-						Link(destination: URL(string: "https://www.linkedin.com/in/serg-bataev/")!) {
-							Label("LinkedIn", systemImage: "person.crop.circle")
-						}
-						.help("Serg Bataev on LinkedIn")
 					}
 					.buttonStyle(.borderless)
 					.tint(brand)
@@ -332,6 +391,13 @@ struct SettingsView: View {
 		.tint(brand)
 		.frame(width: 720, height: 660)
 		.onAppear(perform: refreshOllama)
+	}
+
+	/// An orange "unavailable / dependency" note shown under a stage toggle.
+	private func stageNote(_ text: String) -> some View {
+		Label(text, systemImage: "exclamationmark.triangle.fill")
+			.font(.caption).foregroundStyle(.orange)
+			.fixedSize(horizontal: false, vertical: true)
 	}
 
 	private func chooseVault() {

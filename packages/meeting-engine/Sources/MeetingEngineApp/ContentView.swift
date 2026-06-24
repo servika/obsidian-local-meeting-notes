@@ -97,7 +97,7 @@ struct ContentView: View {
 					onRename: { newName in
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
-					onRegenerate: { controller.regenerate(meeting) },
+					onRegenerate: { count in controller.regenerate(meeting, speakerCount: count) },
 					onDelete: { store.delete(meeting); selection = nil },
 					onCancel: { controller.cancelProcessing() })
 			} else {
@@ -190,6 +190,19 @@ struct RecordPanel: View {
 			.help("Pick the meeting's language for better accuracy")
 			.disabled(controller.isRecording || controller.busy)
 
+			if settings.speakerRecognitionEnabled {
+				HStack(spacing: 6) {
+					Image(systemName: "person.2").foregroundStyle(.secondary)
+					Picker("Speakers", selection: $settings.speakerCount) {
+						Text("Auto-detect").tag(0)
+						ForEach(2...8, id: \.self) { Text("\($0) speakers").tag($0) }
+					}
+					.labelsHidden()
+				}
+				.help("How many people are on the other side of the call (improves speaker recognition)")
+				.disabled(controller.isRecording || controller.busy)
+			}
+
 			Button(action: { controller.toggle() }) {
 				Label(controller.isRecording ? "Stop & Transcribe" : "Record",
 					systemImage: controller.isRecording ? "stop.fill" : "record.circle")
@@ -263,13 +276,16 @@ struct MeetingDetail: View {
 	let status: String
 	let eta: String
 	let onRename: (String) -> Void
-	let onRegenerate: () -> Void
+	let onRegenerate: (Int?) -> Void
 	let onDelete: () -> Void
 	let onCancel: () -> Void
+	@EnvironmentObject var settings: AppSettings
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
 	@State private var copied = false
 	@State private var tab = 0
+	/// Per-meeting remote-speaker count (experimental); seeded from the note.
+	@State private var speakerCount = 0
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
@@ -289,7 +305,7 @@ struct MeetingDetail: View {
 				Button { onRename(titleField) } label: { Image(systemName: "pencil") }
 					.help("Rename")
 					.disabled(titleField.trimmingCharacters(in: .whitespaces).isEmpty || titleField == meeting.title)
-				Button { onRegenerate() } label: { Image(systemName: "arrow.clockwise") }
+				Button { onRegenerate(settings.speakerRecognitionEnabled ? speakerCount : nil) } label: { Image(systemName: "arrow.clockwise") }
 					.help("Re-transcribe & summarize")
 					.disabled(busy)
 				Button(role: .destructive) { confirmingDelete = true } label: { Image(systemName: "trash") }
@@ -310,6 +326,21 @@ struct MeetingDetail: View {
 					.padding(.horizontal, 20).padding(.bottom, 8)
 			}
 
+			if settings.speakerRecognitionEnabled && !busy {
+				HStack(spacing: 6) {
+					Image(systemName: "person.2").foregroundStyle(.secondary)
+					Picker("Speakers", selection: $speakerCount) {
+						Text("Auto-detect").tag(0)
+						ForEach(2...8, id: \.self) { Text("\($0)").tag($0) }
+					}
+					.labelsHidden().fixedSize()
+					Text("remote speakers · Re-generate to apply")
+						.font(.caption).foregroundStyle(.secondary)
+				}
+				.font(.caption)
+				.padding(.horizontal, 20).padding(.bottom, 8)
+			}
+
 			if noteIsOutdated(meeting.appVersion) && !busy {
 				HStack(spacing: 10) {
 					Image(systemName: "sparkles").foregroundStyle(.orange)
@@ -320,7 +351,7 @@ struct MeetingDetail: View {
 							.font(.caption).foregroundStyle(.secondary)
 					}
 					Spacer(minLength: 8)
-					Button("Re-generate") { onRegenerate() }
+					Button("Re-generate") { onRegenerate(settings.speakerRecognitionEnabled ? speakerCount : nil) }
 						.controlSize(.small)
 				}
 				.padding(12)
@@ -369,8 +400,8 @@ struct MeetingDetail: View {
 			}
 			.padding(8)
 		}
-		.onAppear { titleField = meeting.title }
-		.onChange(of: meeting.id) { titleField = meeting.title }
+		.onAppear { titleField = meeting.title; speakerCount = meeting.speakerCount }
+		.onChange(of: meeting.id) { titleField = meeting.title; speakerCount = meeting.speakerCount }
 	}
 
 	/// Markdown to copy for the active tab: summary, transcript, or the full note.
