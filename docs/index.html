@@ -108,22 +108,39 @@
 <section id="install">
   <div class="wrap">
     <h2>Install &amp; setup</h2>
-    <p class="lead"><a href="https://github.com/servika/ai-meeting-notes/releases/latest/download/AI-Meeting-Notes.dmg">Download the latest <code>.dmg</code></a>, open it, and drag <strong>AI Meeting Notes</strong> to your Applications folder. The app is signed &amp; notarized by Apple, so it opens with no Gatekeeper warning.</p>
+    <p class="lead">Most people just download and install - <strong>no building required</strong>.</p>
 
-    <h3>Prefer to build from source?</h3>
-    <pre><code>git clone https://github.com/servika/ai-meeting-notes
-cd ai-meeting-notes/packages/meeting-engine
-./scripts/build-app.sh
-open ".build/AI Meeting Notes.app"</code></pre>
+    <div class="grid">
+      <div class="card">
+        <h4>🍎 macOS</h4>
+        <p><a href="https://github.com/servika/ai-meeting-notes/releases/latest/download/AI-Meeting-Notes.dmg">Download the <code>.dmg</code></a>, open it, and drag <strong>AI Meeting Notes</strong> to Applications. It's signed &amp; notarized by Apple, so it opens with no Gatekeeper warning.</p>
+      </div>
+      <div class="card">
+        <h4>🪟 Windows <span class="pill">beta</span></h4>
+        <p><a href="https://github.com/servika/ai-meeting-notes/releases?q=win&amp;expanded=true">Download the installer</a> (or portable zip) and run it. Self-contained - no .NET install needed. Windows 10/11.</p>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:14px"><strong>Do I need to build it myself?</strong> No. The download above is the finished, ready-to-run app - building from source is only for developers who want to modify or audit the code. A signed release is exactly so you can skip building.</p>
 
     <h3>First run</h3>
     <ol>
-      <li>Press <strong>⌘,</strong> to open Settings.</li>
-      <li><strong>Choose your Obsidian vault</strong> (notes go to <code>&lt;vault&gt;/Meetings</code>, audio to <code>.../recordings</code>).</li>
-      <li>Pick or <strong>download a whisper model</strong>; set <strong>Language</strong> to <code>auto</code>.</li>
+      <li>Open <strong>Settings</strong> (macOS: <strong>⌘,</strong>).</li>
+      <li><strong>Choose a folder for your notes.</strong> Notes are plain Markdown, so any folder works. If you use <a href="https://obsidian.md">Obsidian</a>, point it at your vault (notes go to <code>&lt;folder&gt;/Meetings</code>, audio to <code>.../recordings</code>) and the embedded audio renders as inline players - but <strong>Obsidian is optional</strong>.</li>
+      <li>Pick or <strong>download a whisper model</strong> (start with <code>base</code>); set <strong>Language</strong> to <code>auto</code>.</li>
       <li>Choose a <strong>summary engine</strong> - local Ollama or Claude API - or None.</li>
     </ol>
-    <p class="note">When you click Record the first time, macOS will ask permission to record audio and use the microphone - click <strong>Allow</strong> for both.</p>
+    <p class="note">The first time you click Record, your OS asks permission to record audio and use the microphone - click <strong>Allow</strong> for both.</p>
+
+    <h3>For developers - build from source</h3>
+    <p>Only needed if you're contributing or want to build it yourself.</p>
+    <pre><code># macOS app
+cd ai-meeting-notes/packages/meeting-engine
+./scripts/build-app.sh &amp;&amp; open ".build/AI Meeting Notes.app"
+
+# Windows app
+cd ai-meeting-notes/packages/meeting-notes-windows
+dotnet run --project src/MeetingNotes.App</code></pre>
   </div>
 </section>
 
