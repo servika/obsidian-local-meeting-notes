@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "*"
+      - "!v*"       # macOS app releases (make-dmg --release)
+      - "!win-v*"   # Windows app releases (windows-release.yml)
 
 permissions:
   contents: write
