@@ -99,6 +99,7 @@ struct ContentView: View {
 						if let renamed = store.rename(meeting, to: newName) { selection = renamed.id }
 					},
 					onRegenerate: { count in controller.regenerate(meeting, speakerCount: count) },
+					onCompress: { controller.compressAudio(meeting) },
 					onDelete: { store.delete(meeting); selection = nil },
 					onCancel: { controller.cancelProcessing() })
 			} else {
@@ -320,9 +321,19 @@ struct MeetingDetail: View {
 	let eta: String
 	let onRename: (String) -> Void
 	let onRegenerate: (Int?) -> Void
+	let onCompress: () -> Void
 	let onDelete: () -> Void
 	let onCancel: () -> Void
 	@EnvironmentObject var settings: AppSettings
+
+	/// True when this meeting still has uncompressed WAV tracks on disk.
+	private var hasUncompressedAudio: Bool {
+		guard let dir = settings.meetingsDirURL else { return false }
+		let base = RecordingController.frontmatterValue("audio", in: content) ?? "recordings/\(meeting.title)"
+		return ["mic.wav", "system.wav"].contains {
+			FileManager.default.fileExists(atPath: dir.appendingPathComponent(base + "." + $0).path)
+		}
+	}
 	@State private var titleField = ""
 	@State private var confirmingDelete = false
 	@State private var copied = false
@@ -351,6 +362,11 @@ struct MeetingDetail: View {
 				Button { onRegenerate(settings.speakerRecognitionEnabled ? speakerCount : nil) } label: { Image(systemName: "arrow.clockwise") }
 					.help("Re-transcribe & summarize")
 					.disabled(busy)
+				if hasUncompressedAudio {
+					Button { onCompress() } label: { Image(systemName: "arrow.down.right.and.arrow.up.left") }
+						.help("Compress audio to save space (no re-transcribing)")
+						.disabled(busy)
+				}
 				Button(role: .destructive) { confirmingDelete = true } label: { Image(systemName: "trash") }
 					.help("Delete meeting")
 					.disabled(busy)

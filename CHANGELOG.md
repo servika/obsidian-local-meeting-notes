@@ -15,13 +15,12 @@ This repo ships two apps, versioned independently:
 
 ### [0.27.1] - 2026-06-24
 
-#### Changed
-- **Re-generate now applies your audio setting.** Re-transcribing an older,
-  still-uncompressed recording compresses it when "Audio after transcription" is
-  set to *Compressed* - a simple way to shrink your backlog (re-generate → audio
-  becomes `.m4a`). Re-generate never auto-deletes audio (deletion stays a
-  deliberate choice on the original recording), and recordings already compressed
-  are left untouched.
+#### Added
+- **"Compress audio" button** on a meeting whose recording is still uncompressed
+  WAV. It transcodes the tracks to AAC `.m4a` in place and updates the note's audio
+  embeds - **without re-transcribing** (fast, and the transcript is untouched). A
+  direct way to shrink older, high-quality recordings. Re-generate is now purely
+  re-transcription and never changes the audio.
 
 ### [0.27.0] - 2026-06-24
 
