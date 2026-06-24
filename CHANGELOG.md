@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.26.1] - 2026-06-24
+
+#### Added
+- **One-command release.** `scripts/make-dmg.sh --release` now publishes a
+  GitHub Release (tag `v<VERSION>`) with the notarized DMG attached under the
+  stable name `AI-Meeting-Notes.dmg` - the filename the landing page's download
+  button points at via `/releases/latest/`. Refuses to release a non-notarized
+  DMG; updates the asset in place if the release tag already exists.
+
 ### [0.26.0] - 2026-06-21
 
 #### Changed
