@@ -68,7 +68,10 @@ jobs:
           $v = "${{ steps.ver.outputs.version }}"
           Compress-Archive -Path publish/app/* -DestinationPath "publish/AI-Meeting-Notes-Windows-$v.zip" -Force
           Copy-Item "publish/AI-Meeting-Notes-Windows-$v.zip" "publish/AI-Meeting-Notes-Windows.zip" -Force
-          ISCC /DMyAppVersion=$v /DMyAppDir=publish\app /Opublish scripts\installer.iss
+          # ISCC resolves relative paths against the .iss folder (scripts/), so pass absolute paths.
+          $appDir = (Resolve-Path publish/app).Path
+          $outDir = (Resolve-Path publish).Path
+          ISCC /DMyAppVersion=$v "/DMyAppDir=$appDir" "/O$outDir" scripts\installer.iss
           Copy-Item "publish/AI-Meeting-Notes-Setup-$v.exe" "publish/AI-Meeting-Notes-Setup.exe" -Force
 
       - name: Sign installer (Azure Trusted Signing)
