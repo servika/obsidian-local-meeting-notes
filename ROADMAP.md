@@ -100,9 +100,16 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
 
 ## Capture & product (the "Notion-grade" roadmap)
 
-- **localhost API + Obsidian plugin integration.**
-  The original hybrid plan: native app as the capture/transcription daemon,
-  the Obsidian plugin as a client that reads/queries meetings.
+- **Product shape decided: the desktop app is the product; output is a folder of
+  Markdown.** Obsidian is an *optional viewer* of that folder, not a dependency -
+  see [NOTE-FORMAT.md](NOTE-FORMAT.md) (the output contract). The standalone
+  Obsidian *plugin* (`packages/ai-meeting-notes`) is **deprecated** now that the
+  apps capture with zero setup; it stays for the record but isn't developed.
+- **Optional: read-only Obsidian companion (deferred).**
+  If Obsidian-native querying is ever wanted, repurpose the plugin as a *read-only*
+  client over the apps' output (no recording): dashboards, search, "re-summarize"
+  via a small localhost API exposed by the app. Only worth it if in-app library +
+  plain Markdown prove insufficient.
 - **Real multi-speaker diarization** (phase 1 shipped in 0.23.0 as the
   experimental "Recognize speakers" toggle - see Completed). Remaining phases:
   - **Phase 2:** UI to **rename speakers** per meeting (and persist the mapping).
