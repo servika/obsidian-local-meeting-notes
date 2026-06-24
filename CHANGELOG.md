@@ -13,7 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
-### [0.26.2] - 2026-06-24
+### [0.27.0] - 2026-06-24
+
+#### Added
+- **Update notifications.** The app checks GitHub Releases on launch (throttled to
+  once a day) for a newer macOS version and, when one exists, shows a slim
+  "Version X is available - Download" bar at the top of the window (dismissible
+  until the next version). Settings → About also has a manual **Check for updates**
+  button. Privacy-safe: a single outbound request to the public GitHub API, no
+  telemetry, and nothing auto-installs - the Download button just opens the
+  release page.
 
 #### Fixed
 - **No silent failure when no notes folder is set.** If you click Record before

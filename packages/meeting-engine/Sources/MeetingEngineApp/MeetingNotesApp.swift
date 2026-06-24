@@ -6,6 +6,7 @@ struct MeetingNotesApp: App {
 	@StateObject private var store: MeetingStore
 	@StateObject private var controller: RecordingController
 	@StateObject private var detector: MeetingDetector
+	@StateObject private var updates = UpdateChecker()
 
 	init() {
 		let s = AppSettings()
@@ -28,10 +29,11 @@ struct MeetingNotesApp: App {
 				.environmentObject(controller)
 				.environmentObject(detector)
 				.frame(minWidth: 760, minHeight: 480)
-				.onAppear { detector.start() }
+				.environmentObject(updates)
+				.onAppear { detector.start(); updates.checkIfDue() }
 		}
 		Settings {
-			SettingsView().environmentObject(settings)
+			SettingsView().environmentObject(settings).environmentObject(updates)
 		}
 
 		MenuBarExtra {

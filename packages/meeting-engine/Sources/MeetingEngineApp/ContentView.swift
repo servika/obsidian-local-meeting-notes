@@ -54,6 +54,7 @@ struct ContentView: View {
 	@EnvironmentObject var settings: AppSettings
 	@EnvironmentObject var store: MeetingStore
 	@EnvironmentObject var controller: RecordingController
+	@EnvironmentObject var updates: UpdateChecker
 	@State private var selection: Meeting.ID?
 	@State private var query = ""
 
@@ -109,6 +110,28 @@ struct ContentView: View {
 		.onAppear { store.reload(folder: settings.meetingsDirURL) }
 		.onChange(of: controller.activeID) {
 			if let id = controller.activeID { selection = id }
+		}
+		.safeAreaInset(edge: .top, spacing: 0) { updateBanner }
+	}
+
+	/// A slim "update available" bar at the top of the window. Empty (no space)
+	/// when the app is current or the user dismissed the notice.
+	@ViewBuilder private var updateBanner: some View {
+		if updates.updateAvailable, let v = updates.latestVersion {
+			HStack(spacing: 10) {
+				Image(systemName: "arrow.down.circle.fill").foregroundStyle(brand)
+				Text("Version \(v) is available.").font(.callout)
+				Spacer()
+				if let url = updates.releaseURL {
+					Link("Download", destination: url)
+						.buttonStyle(.borderedProminent).controlSize(.small)
+				}
+				Button { updates.dismiss() } label: { Image(systemName: "xmark") }
+					.buttonStyle(.borderless).controlSize(.small)
+					.help("Dismiss until the next version")
+			}
+			.padding(.horizontal, 14).padding(.vertical, 8)
+			.background(.bar)
 		}
 	}
 }

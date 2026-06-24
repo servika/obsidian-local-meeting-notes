@@ -4,6 +4,7 @@ import MeetingEngineCore
 
 struct SettingsView: View {
 	@EnvironmentObject var settings: AppSettings
+	@EnvironmentObject var updates: UpdateChecker
 	@StateObject private var downloader = ModelDownloader()
 	@State private var ollamaModels: [String] = []
 	@State private var modelToDownload = "base"
@@ -372,6 +373,22 @@ struct SettingsView: View {
 						.font(.headline)
 					Text("Version \(Self.appVersion)")
 						.font(.caption).foregroundStyle(.secondary)
+
+					if updates.updateAvailable, let v = updates.latestVersion, let url = updates.releaseURL {
+						Link(destination: url) {
+							Label("Update available: \(v) - Download", systemImage: "arrow.down.circle.fill")
+						}
+						.buttonStyle(.borderedProminent).controlSize(.small).tint(brand)
+					} else {
+						HStack(spacing: 8) {
+							Button(updates.checking ? "Checking…" : "Check for updates") { updates.check() }
+								.controlSize(.small).disabled(updates.checking)
+							if !updates.status.isEmpty {
+								Text(updates.status).font(.caption).foregroundStyle(.secondary)
+							}
+						}
+					}
+
 					HStack(spacing: 18) {
 						Link(destination: URL(string: "https://github.com/servika/ai-meeting-notes")!) {
 							Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
