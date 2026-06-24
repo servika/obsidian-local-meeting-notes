@@ -24,6 +24,11 @@ This repo ships two apps, versioned independently:
   works; Obsidian is optional).
 
 #### Changed
+- **Each process owns its Settings tab.** The on/off toggle for transcription now
+  lives on the **Transcription** tab and the summary toggle on the **Summary** tab,
+  each next to that process's own settings - instead of both being bundled in a
+  shared "Processing steps" section under General. Cleaner separation; no behavior
+  change.
 - **Accurate "time left" on the first run.** The processing ETA now extrapolates
   from live transcription progress once it's underway, instead of relying only on
   the per-model estimate (which isn't calibrated until you've processed at least

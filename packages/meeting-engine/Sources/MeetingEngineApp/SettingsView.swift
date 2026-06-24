@@ -138,26 +138,6 @@ struct SettingsView: View {
 					.font(.caption).foregroundStyle(.secondary)
 			}
 
-			Section("Processing steps") {
-				Text("Choose what happens after a recording stops. Audio is always saved; turn off the steps you don't need.")
-					.font(.caption).foregroundStyle(.secondary)
-					.fixedSize(horizontal: false, vertical: true)
-
-				Toggle("Transcribe meetings", isOn: $settings.transcribeMeetings)
-					.disabled(!settings.transcriptionAvailable)
-				if settings.transcribeMeetings, let reason = settings.transcriptionUnavailableReason {
-					stageNote(reason)
-				}
-
-				Toggle("Generate summary & action items", isOn: $settings.summarizeMeetings)
-					.disabled(!settings.transcribeMeetings || !settings.summaryAvailable)
-				if !settings.transcribeMeetings {
-					stageNote("Turn on transcription first - the summary is generated from the transcript.")
-				} else if settings.summarizeMeetings, let reason = settings.summaryUnavailableReason {
-					stageNote(reason)
-				}
-			}
-
 			Section("Experimental features") {
 				Toggle("Enable experimental features", isOn: $settings.experimentalMode)
 				Text("Turns on new, in-development R&D features. These are rough around the edges and may change or be removed - off by default so the regular experience is unaffected.")
@@ -180,6 +160,17 @@ struct SettingsView: View {
 		.tabItem { Label("General", systemImage: "folder") }
 
 		Form {
+			Section {
+				Toggle("Transcribe meetings", isOn: $settings.transcribeMeetings)
+					.disabled(!settings.transcriptionAvailable)
+				if settings.transcribeMeetings, let reason = settings.transcriptionUnavailableReason {
+					stageNote(reason)
+				}
+				Text("When on, each recording is transcribed after it stops. Audio is always saved either way.")
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
+			}
+
 			Section("Quick setup") {
 				HStack {
 					Button {
@@ -304,12 +295,21 @@ struct SettingsView: View {
 
 		Form {
 			Section("Summary & action items") {
+				Toggle("Generate summary & action items", isOn: $settings.summarizeMeetings)
+					.disabled(!settings.transcribeMeetings || !settings.summaryAvailable)
+				if !settings.transcribeMeetings {
+					stageNote("Turn on transcription first (Transcription tab) - the summary is generated from the transcript.")
+				} else if settings.summarizeMeetings, let reason = settings.summaryUnavailableReason {
+					stageNote(reason)
+				}
+				Text("When on, each transcript is summarized into a short summary, topics, and action items.")
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
+
 				Picker("Engine", selection: $settings.summaryEngine) {
 					Text("Local (Ollama)").tag("ollama")
 					Text("Claude API").tag("claude")
 				}
-				Text("Turn summaries on or off under General → Processing steps.")
-					.font(.caption).foregroundStyle(.secondary)
 
 				if settings.summaryEngine == "ollama" {
 					TextField("Ollama URL", text: $settings.ollamaURL)
