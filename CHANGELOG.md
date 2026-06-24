@@ -23,6 +23,12 @@ This repo ships two apps, versioned independently:
   status line. Also reworded the prompt away from "Obsidian vault" (any folder
   works; Obsidian is optional).
 
+#### Changed
+- **Removed "Obsidian" wording from Settings.** The Storage section, folder field,
+  and folder-picker no longer say "Obsidian vault" - they just refer to a notes
+  folder (any folder works), with a one-line hint that meetings are saved as
+  Markdown there. Existing saved folders are unaffected.
+
 ### [0.26.1] - 2026-06-24
 
 #### Added

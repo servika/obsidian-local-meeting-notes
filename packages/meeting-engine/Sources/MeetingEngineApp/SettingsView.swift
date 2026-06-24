@@ -121,12 +121,15 @@ struct SettingsView: View {
 	var body: some View {
 		TabView {
 		Form {
-			Section("Storage (Obsidian vault)") {
+			Section("Storage") {
 				HStack {
-					TextField("Vault folder", text: $settings.vaultPath)
+					TextField("Notes folder", text: $settings.vaultPath)
 					Button("Choose…", action: chooseVault)
 				}
 				TextField("Meetings subfolder", text: $settings.meetingsFolder)
+				Text("Meetings are saved as Markdown in this folder. Any folder works.")
+					.font(.caption).foregroundStyle(.secondary)
+					.fixedSize(horizontal: false, vertical: true)
 			}
 
 			Section("Recording") {
@@ -216,7 +219,7 @@ struct SettingsView: View {
 
 				TextField("Vocabulary hint (optional)", text: $settings.transcriptionPrompt, axis: .vertical)
 					.lineLimit(2...4)
-				Text("Helps spelling of names and terms. List participant names, product/company names, and any jargon - e.g. \"Зустріч українською. Сергій, Олег, Keystone, Obsidian, whisper.\"")
+				Text("Helps spelling of names and terms. List participant names, product/company names, and any jargon - e.g. \"Зустріч українською. Сергій, Олег, Keystone, Acme, whisper.\"")
 					.font(.caption).foregroundStyle(.secondary)
 
 				HStack {
@@ -409,7 +412,7 @@ struct SettingsView: View {
 		panel.canChooseDirectories = true
 		panel.canChooseFiles = false
 		panel.allowsMultipleSelection = false
-		panel.prompt = "Choose Vault"
+		panel.prompt = "Choose Folder"
 		if panel.runModal() == .OK, let url = panel.url { settings.vaultPath = url.path }
 	}
 
