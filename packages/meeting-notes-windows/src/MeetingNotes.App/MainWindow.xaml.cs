@@ -25,8 +25,71 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ModelPicker.ItemsSource = ModelDownloader.Available;
+        ModelPicker.SelectedItem = "base";
         LoadSettings();
+        ApplyDefaults();
         RefreshMeetings();
+    }
+
+    /// <summary>Fill in sensible paths the app can resolve itself, so first run needs no typing.</summary>
+    private void ApplyDefaults()
+    {
+        if (string.IsNullOrWhiteSpace(WhisperBox.Text))
+            WhisperBox.Text = ModelDownloader.ResolveWhisperCli();
+        if (string.IsNullOrWhiteSpace(ModelBox.Text))
+        {
+            // Prefer an already-downloaded model in the app's models dir.
+            var installed = ModelDownloader.Available.FirstOrDefault(ModelDownloader.IsInstalled);
+            if (installed is not null) ModelBox.Text = ModelDownloader.ModelPath(installed);
+        }
+    }
+
+    private void OnBrowseVault(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Choose your vault's Meetings folder" };
+        if (dlg.ShowDialog() == true) { VaultBox.Text = dlg.FolderName; RefreshMeetings(); }
+    }
+
+    private void OnBrowseModel(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Whisper model (*.bin)|*.bin|All files|*.*" };
+        if (dlg.ShowDialog() == true) ModelBox.Text = dlg.FileName;
+    }
+
+    private void OnBrowseWhisper(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "whisper-cli (*.exe)|*.exe|All files|*.*" };
+        if (dlg.ShowDialog() == true) WhisperBox.Text = dlg.FileName;
+    }
+
+    private async void OnDownloadModel(object sender, RoutedEventArgs e)
+    {
+        if (ModelPicker.SelectedItem is not string model) return;
+        if (ModelDownloader.IsInstalled(model))
+        {
+            ModelBox.Text = ModelDownloader.ModelPath(model);
+            StatusText.Text = $"{model} already downloaded.";
+            return;
+        }
+        DownloadButton.IsEnabled = false;
+        StatusText.Text = $"Downloading {model}...";
+        var progress = new Progress<double>(p => DownloadProgress.Value = p);
+        try
+        {
+            var path = await new ModelDownloader(_http).DownloadAsync(model, progress);
+            ModelBox.Text = path;
+            StatusText.Text = $"Downloaded {Path.GetFileName(path)}.";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Download failed: " + ex.Message;
+        }
+        finally
+        {
+            DownloadButton.IsEnabled = true;
+            DownloadProgress.Value = 0;
+        }
     }
 
     private async void OnRecordClick(object sender, RoutedEventArgs e)

@@ -22,12 +22,29 @@
 
                 <Expander Header="Settings" Margin="0,10,0,0" IsExpanded="True">
                     <StackPanel>
-                        <TextBlock Text="Vault - Meetings folder" />
+                        <DockPanel>
+                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseVault" />
+                            <TextBlock Text="Vault - Meetings folder" VerticalAlignment="Center" />
+                        </DockPanel>
                         <TextBox x:Name="VaultBox" />
-                        <TextBlock Text="Whisper model path (.bin)" Margin="0,6,0,0" />
-                        <TextBox x:Name="ModelBox" />
-                        <TextBlock Text="whisper-cli.exe path" Margin="0,6,0,0" />
-                        <TextBox x:Name="WhisperBox" />
+
+                        <TextBlock Text="Whisper model (.bin)" Margin="0,6,0,0" />
+                        <DockPanel>
+                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseModel" />
+                            <TextBox x:Name="ModelBox" />
+                        </DockPanel>
+                        <DockPanel Margin="0,2,0,0">
+                            <Button x:Name="DownloadButton" Content="Download" DockPanel.Dock="Right"
+                                    Padding="6,0" Click="OnDownloadModel" />
+                            <ComboBox x:Name="ModelPicker" />
+                        </DockPanel>
+                        <ProgressBar x:Name="DownloadProgress" Height="6" Minimum="0" Maximum="1" Margin="0,2,0,0" />
+
+                        <TextBlock Text="whisper-cli.exe" Margin="0,6,0,0" />
+                        <DockPanel>
+                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseWhisper" />
+                            <TextBox x:Name="WhisperBox" />
+                        </DockPanel>
                         <TextBlock Text="Language" Margin="0,6,0,0" />
                         <TextBox x:Name="LanguageBox" Text="auto" />
                         <CheckBox x:Name="TranscribeCheck" Content="Transcribe" IsChecked="True" Margin="0,6,0,0" />

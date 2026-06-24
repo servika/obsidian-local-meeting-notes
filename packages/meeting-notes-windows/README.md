@@ -31,3 +31,13 @@ dotnet build MeetingNotes.sln
 ```
 
 Requires the .NET 8 SDK.
+
+## Whisper setup
+
+The app needs `whisper-cli.exe` and a ggml model (`.bin`):
+
+- **Model** - click **Download** in Settings (pick `base` to start); it lands in
+  `%APPDATA%/MeetingNotes/models/`. Or Browse to an existing `.bin`.
+- **whisper-cli.exe** - bundle it once with `pwsh ./scripts/setup-whisper.ps1`
+  (downloads the latest whisper.cpp Windows binary into `src/MeetingNotes.App/vendor/`,
+  copied next to the app on build and auto-resolved). Or Browse to your own copy.

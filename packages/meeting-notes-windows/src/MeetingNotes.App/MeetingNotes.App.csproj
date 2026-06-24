@@ -19,4 +19,14 @@
     <ProjectReference Include="..\MeetingNotes.Audio\MeetingNotes.Audio.csproj" />
   </ItemGroup>
 
+  <!--
+    Bundle a self-contained whisper-cli.exe (and any VAD/model files) dropped into
+    vendor/ by scripts/setup-whisper.ps1, so the app finds it next to its exe via
+    ModelDownloader.ResolveWhisperCli() with no PATH setup. Optional - when absent
+    the user just points the whisper-cli.exe path at their own copy in Settings.
+  -->
+  <ItemGroup>
+    <Content Include="vendor\**" CopyToOutputDirectory="PreserveNewest" Condition="Exists('vendor')" />
+  </ItemGroup>
+
 </Project>
