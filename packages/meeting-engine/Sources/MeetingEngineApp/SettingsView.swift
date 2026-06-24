@@ -374,6 +374,10 @@ struct SettingsView: View {
 							Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
 						}
 						.help("Project on GitHub")
+						Link(destination: URL(string: "https://github.com/servika/ai-meeting-notes/blob/main/THIRD-PARTY-NOTICES.md")!) {
+							Label("Credits & licenses", systemImage: "doc.text")
+						}
+						.help("Open-source components this app is built on")
 					}
 					.buttonStyle(.borderless)
 					.tint(brand)

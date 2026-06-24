@@ -5,7 +5,7 @@ that captures meeting audio, transcribes, and diarizes, exposing a localhost API
 to the Obsidian plugin (and future clients).
 
 **Current status: core validated.** Captures macOS audio with **no virtual
-device** (no BlackHole): two **separate tracks** - system audio (the other
+audio device**: two **separate tracks** - system audio (the other
 participants) via Core Audio **process taps** (`AudioHardwareCreateProcessTap`,
 macOS 14.4+) and your microphone via `AVAudioEngine`, one WAV each. System-audio
 capture is confirmed working end-to-end via the signed app (incl. on Bluetooth
@@ -57,9 +57,9 @@ notarization.)
 swift run meeting-engine 10 /tmp/meeting-test [appNameToTap]
 ```
 
-## Why process taps (not ScreenCaptureKit / BlackHole)
+## Why process taps (not ScreenCaptureKit / a virtual audio device)
 
-- **No BlackHole / Multi-Output Device** - the whole point.
+- **No virtual audio device / Multi-Output Device** - the whole point.
 - **Audio-only** - taps don't require the scary "Screen Recording" permission that
   ScreenCaptureKit does.
 - **Per-process** - taps can target specific apps (e.g. just Zoom/Teams), enabling

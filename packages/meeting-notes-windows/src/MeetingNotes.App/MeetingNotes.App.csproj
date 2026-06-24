@@ -29,4 +29,10 @@
     <Content Include="vendor\**" CopyToOutputDirectory="PreserveNewest" Condition="Exists('vendor')" />
   </ItemGroup>
 
+  <!-- Ship the third-party license notices next to the app (attribution). -->
+  <ItemGroup>
+    <Content Include="..\..\..\..\licenses\THIRD-PARTY-LICENSES.txt" Link="THIRD-PARTY-LICENSES.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

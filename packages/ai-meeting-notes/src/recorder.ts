@@ -1,6 +1,6 @@
 /**
  * Captures one or two audio inputs (e.g. microphone + a system-audio loopback
- * device such as BlackHole) with the Web Audio API and records to a WebM/Opus
+ * device) with the Web Audio API and records to a WebM/Opus
  * blob. When both sources are present they are kept separate as a stereo split -
  * mic on the left channel, system audio on the right - so speaker separation is
  * preserved in the archive (useful for diarization). Transcription downmixes

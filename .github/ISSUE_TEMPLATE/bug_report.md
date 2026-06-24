@@ -17,7 +17,7 @@ Steps:
 - Obsidian version:
 - Plugin version:
 - whisper.cpp binary + model (e.g. `whisper-cli`, `ggml-base.en.bin`):
-- Loopback device (e.g. BlackHole 2ch / none):
+- Loopback device (e.g. virtual audio cable / none):
 
 **Console output**
 Any errors from the developer console (Cmd-Opt-I → Console).

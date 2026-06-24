@@ -1,0 +1,73 @@
+AI Meeting Notes - Third-party licenses
+========================================
+
+AI Meeting Notes is MIT-licensed. It bundles and uses the open-source components
+below. A human-readable overview is in THIRD-PARTY-NOTICES.md; this file carries
+the formal copyright notices and license texts for the components distributed
+with the app, as required by their licenses.
+
+
+Components bundled with the app (MIT-licensed)
+----------------------------------------------
+
+  whisper.cpp                  Copyright (c) 2023-2024 The ggml authors
+    https://github.com/ggml-org/whisper.cpp
+
+  Silero VAD model             Copyright (c) Silero Team (snakers4/silero-vad)
+    https://github.com/snakers4/silero-vad
+
+  NAudio (Windows app)         Copyright 2020 Mark Heath and contributors
+    https://github.com/naudio/NAudio
+
+  .NET runtime (Windows app)   Copyright (c) .NET Foundation and Contributors
+    https://github.com/dotnet/runtime
+
+Each of the above is licensed under the MIT License, the text of which is:
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+
+Apache-2.0 components (macOS speaker-recognition, when enabled)
+--------------------------------------------------------------
+
+  sherpa-onnx                  Copyright (c) k2-fsa / Xiaomi Corporation
+    https://github.com/k2-fsa/sherpa-onnx  (Apache License 2.0)
+
+These are only present when you opt into the experimental speaker-recognition
+feature. When distributing a build that includes them, ship a copy of the Apache
+License 2.0 (https://www.apache.org/licenses/LICENSE-2.0) and the project's NOTICE
+file alongside this file.
+
+
+Not bundled with the app
+------------------------
+
+The following are used at runtime but are NOT distributed inside the app, so their
+licenses do not attach to it:
+
+  - Ollama (MIT) - a separate local app you install; summaries are optional.
+  - LLM model weights pulled via Ollama - each carries its own license, which is
+    your responsibility (e.g. Qwen2.5 is Apache-2.0; Meta Llama has extra terms).
+  - Anthropic Claude API - cloud service used only if you choose it, under
+    Anthropic's terms with your own key.
+  - Loopback (virtual audio) devices - the optional Obsidian-plugin workflow lets
+    you select a loopback input device you already have. None is bundled,
+    required, or referenced by the app's code.
+
+The authoritative license text for each project is in its linked repository.

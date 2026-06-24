@@ -197,6 +197,12 @@ public partial class MainWindow : Window
             DetailBox.Text = File.ReadAllText(m.Path);
     }
 
+    private void OnOpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
+    }
+
     // ---- settings persistence ----
 
     private sealed record Settings(

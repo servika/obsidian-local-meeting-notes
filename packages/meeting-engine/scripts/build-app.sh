@@ -28,6 +28,9 @@ cp vendor/whisper-cli "$APP/Contents/Resources/whisper-cli"
 chmod +x "$APP/Contents/Resources/whisper-cli"
 # VAD model (data file, no signing needed) - enables skipping non-speech.
 cp vendor/ggml-silero-v5.1.2.bin "$APP/Contents/Resources/ggml-silero-v5.1.2.bin"
+# Third-party license notices (attribution for bundled MIT/Apache components).
+cp ../../licenses/THIRD-PARTY-LICENSES.txt "$APP/Contents/Resources/" 2>/dev/null || true
+cp ../../THIRD-PARTY-NOTICES.md "$APP/Contents/Resources/" 2>/dev/null || true
 
 # Experimental speaker recognition: bundle the sherpa-onnx diarization binary +
 # ONNX models if present in vendor/ (see scripts/setup-diarization.sh). Optional

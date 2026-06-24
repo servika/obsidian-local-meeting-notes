@@ -8,8 +8,8 @@
 
 This repo offers **two ways** to capture, transcribe, and summarize meetings entirely on your Mac:
 
-- 🖥️ **macOS app** (`packages/meeting-engine`) - **recommended**. Zero-setup capture of system audio + your mic (no BlackHole), a meetings library, AI summaries, and a tabbed review UI.
-- 🧩 **Obsidian plugin** (`packages/ai-meeting-notes`) - records and transcribes inside your vault (uses a BlackHole loopback for system audio).
+- 🖥️ **macOS app** (`packages/meeting-engine`) - **recommended**. Zero-setup capture of system audio + your mic (no virtual audio device), a meetings library, AI summaries, and a tabbed review UI.
+- 🧩 **Obsidian plugin** (`packages/ai-meeting-notes`) - records and transcribes inside your vault (uses a loopback audio device for system audio).
 
 Both are local-first: transcription runs on your machine via [whisper.cpp](https://github.com/ggerganov/whisper.cpp); summaries can use a local [Ollama](https://ollama.com) model (or, optionally, the Claude API).
 
@@ -17,7 +17,7 @@ Both are local-first: transcription runs on your machine via [whisper.cpp](https
 
 ## 🖥️ macOS app (recommended)
 
-Zero-setup system-audio + microphone capture via Core Audio process taps (no BlackHole), local transcription with **automatic language detection**, **"You vs. Them" diarization**, AI summaries (short summary, summary, topics discussed, action items), and a **meetings library** that writes notes into your Obsidian vault. Record/stop, re-generate, rename, delete, and copy-as-Markdown from the UI.
+Zero-setup system-audio + microphone capture via Core Audio process taps (no virtual audio device), local transcription with **automatic language detection**, **"You vs. Them" diarization**, AI summaries (short summary, summary, topics discussed, action items), and a **meetings library** that writes notes into your Obsidian vault. Record/stop, re-generate, rename, delete, and copy-as-Markdown from the UI.
 
 ```bash
 cd packages/meeting-engine
@@ -50,7 +50,7 @@ The rest of this README covers the Obsidian plugin.
 ```
  Mic ─┐
       ├─► Web Audio mixer ─► MediaRecorder (WebM/Opus) ─► OfflineAudioContext
- Sys ─┘   (BlackHole)                                    (resample → 16 kHz mono WAV)
+ Sys ─┘   (loopback)                                     (resample → 16 kHz mono WAV)
                                                                     │
                                                        whisper.cpp (whisper-cli)
                                                                     │
@@ -67,15 +67,11 @@ This plugin orchestrates two external pieces you install once. It does **not** b
 
 ### 1. A loopback device for system audio
 
-System audio capture on macOS requires a virtual audio device. [BlackHole](https://github.com/ExistentialAudio/BlackHole) is free and open source:
+System audio capture on macOS requires a **loopback (virtual audio) device** - install any one you prefer, then select it as the System audio input in the plugin's settings.
 
-```bash
-brew install blackhole-2ch
-```
+Then, so you can still **hear** the meeting while it's captured, open **Audio MIDI Setup** and create a **Multi-Output Device** containing both your speakers/headphones **and** your loopback device, and select it as your system output.
 
-Then, so you can still **hear** the meeting while it's captured, open **Audio MIDI Setup** and create a **Multi-Output Device** containing both your speakers/headphones **and** BlackHole, and select it as your system output.
-
-> If you only want to record your own microphone, you can skip BlackHole entirely.
+> If you only want to record your own microphone, you can skip the loopback device entirely.
 
 ### 2. whisper.cpp + a model
 
@@ -115,7 +111,7 @@ Larger models (`small`, `medium`, `large-v3`) are more accurate but slower. Brow
 Open **Settings → AI Meeting Notes**:
 
 1. Click **Grant** to allow microphone access (needed once so device names appear).
-2. Choose your **Microphone** and your **System audio (loopback)** device (e.g. *BlackHole 2ch*).
+2. Choose your **Microphone** and your **System audio (loopback)** device.
 3. Set **Model path** to your model file, e.g. `~/models/ggml-base.en.bin`.
 4. The **whisper-cli binary** defaults to `whisper-cli` (works if installed via Homebrew); override with a full path if needed.
 
@@ -139,7 +135,7 @@ Open **Settings → AI Meeting Notes**:
 | Setting | Default | Description |
 |---|---|---|
 | Microphone | - | Input device for your voice. |
-| System audio (loopback) | - | The other participants (e.g. BlackHole). Leave empty for mic-only. |
+| System audio (loopback) | - | The other participants (your loopback device). Leave empty for mic-only. |
 | whisper-cli binary | `whisper-cli` | Command or absolute path to the whisper.cpp CLI. |
 | Model path | - | Absolute path (or `~/…`) to a `ggml-*.bin` model. |
 | Language | `auto` | Language code (e.g. `en`) or `auto`. |
@@ -157,7 +153,7 @@ Open **Settings → AI Meeting Notes**:
 
 - **"whisper model not found"** - set the **Model path** to the absolute path of your `.bin` file. `~` is expanded.
 - **Device names are blank** - click **Grant** in settings to authorize microphone access, then reopen settings.
-- **Only my voice is transcribed** - your system-audio device isn't selected, or the call's audio isn't routed through BlackHole. Check your macOS output device / Multi-Output Device.
+- **Only my voice is transcribed** - your system-audio device isn't selected, or the call's audio isn't routed through your loopback device. Check your macOS output device / Multi-Output Device.
 - **Transcription is slow** - use a smaller model (`base.en`/`small.en`), or pass more threads. Apple Silicon transcribes `base` far faster than realtime.
 - **Plugin doesn't appear after install** - reload Obsidian (Cmd-R) or toggle Community plugins off/on.
 
@@ -214,7 +210,6 @@ The **only** outbound request is the optional AI summary, which is **off by defa
 ## Acknowledgements
 
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) by Georgi Gerganov
-- [BlackHole](https://github.com/ExistentialAudio/BlackHole) by Existential Audio
 - Built on the [Obsidian API](https://github.com/obsidianmd/obsidian-api)
 
 ## License

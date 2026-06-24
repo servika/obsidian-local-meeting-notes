@@ -34,11 +34,10 @@ credits preserved - nothing here limits how you use AI Meeting Notes.
   Qwen2.5) are permissive, while a few (like Meta's Llama) have extra usage terms.
   The app suggests a permissive default; which model you run, and under what terms,
   is up to you.
-- **BlackHole (Obsidian plugin only).** The macOS and Windows apps capture system
-  audio with no extra setup. The older Obsidian-plugin route instead asks you to
-  install [BlackHole](https://github.com/ExistentialAudio/BlackHole), a free
-  loopback audio driver. It's licensed GPL-3.0 and you install it yourself - it is
-  never bundled into the app.
+- **Loopback devices (Obsidian plugin only).** The macOS and Windows apps capture
+  system audio with no extra setup. The older Obsidian-plugin route instead lets
+  you pick a loopback (virtual audio) input device you already have. Such a device
+  is never bundled with or required by the app - it's simply one you can select.
 
 ## Your privacy
 

@@ -15,16 +15,16 @@ To transcribe a video call you need the plugin to hear two things at once:
 - **The system audio** - everyone *else* on the call, i.e. whatever your Mac is
   playing through its speakers.
 
-macOS doesn't let apps record system audio directly, so you install a virtual
-"loopback" device (**BlackHole**) that the call's audio flows into. The plugin
-records from BlackHole. The catch: if audio only goes to BlackHole, *you* can't
-hear the call. The fix is a **Multi-Output Device** that sends sound to your
-headphones **and** BlackHole at the same time.
+macOS doesn't let apps record system audio directly, so you install a **loopback
+(virtual audio) device** that the call's audio flows into. The plugin records
+from that loopback device. The catch: if audio only goes to the loopback device,
+*you* can't hear the call. The fix is a **Multi-Output Device** that sends sound
+to your headphones **and** the loopback device at the same time.
 
 ```
                        ┌─► Headphones (you hear it)
 Call audio ─► Multi-Output Device ┤
-                       └─► BlackHole ─► AI Meeting Notes (records it)
+                       └─► Loopback device ─► AI Meeting Notes (records it)
 
 Your voice ─► Microphone ─────────► AI Meeting Notes (records it)
 ```
@@ -37,8 +37,11 @@ You set this up **once**. After that, recording a meeting is two clicks.
 
 ### 1. Install the tools
 
+Install whisper.cpp and a model, plus a loopback (virtual audio) device of your
+choice for system-audio capture:
+
 ```bash
-brew install blackhole-2ch whisper-cpp
+brew install whisper-cpp     # plus a loopback audio device of your choice
 mkdir -p ~/models
 curl -L -o ~/models/ggml-base.en.bin \
   https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
@@ -49,9 +52,9 @@ curl -L -o ~/models/ggml-base.en.bin \
 1. Open **Audio MIDI Setup** (Applications → Utilities, or Spotlight).
 2. Click the **+** at the bottom-left → **Create Multi-Output Device**.
 3. In the right panel, tick **both** your normal output (e.g. *MacBook Pro
-   Speakers* or your headphones) **and** *BlackHole 2ch*.
+   Speakers* or your headphones) **and** your loopback device.
 4. Tip: put your real output device **first** in the list and enable **Drift
-   Correction** on *BlackHole*.
+   Correction** on the loopback device.
 5. Optionally rename it to something like *Meeting Output*.
 
 You'll switch your Mac's output to this device during meetings (next section).
@@ -63,7 +66,7 @@ You'll switch your Mac's output to this device during meetings (next section).
    - Click **Grant** to allow microphone access (needed once so device names
      appear).
    - **Microphone** → your mic.
-   - **System audio (loopback)** → *BlackHole 2ch*.
+   - **System audio (loopback)** → your loopback device.
    - **Model path** → `~/models/ggml-base.en.bin`.
    - Leave the rest at defaults.
 
@@ -159,7 +162,7 @@ saved - you just won't get a summary.
 | "whisper model not found" | Set **Model path** to the absolute path of your `.bin` (a leading `~` is expanded). |
 | Device dropdowns are empty | Click **Grant** in settings, then reopen the settings tab. |
 | Only my voice is transcribed | Output isn't on the Multi-Output Device, or **System audio** isn't selected. |
-| I can't hear the meeting while recording | Your output is set to raw *BlackHole* instead of the **Multi-Output Device**. |
+| I can't hear the meeting while recording | Your output is set to the raw loopback device instead of the **Multi-Output Device**. |
 | Transcription is slow | Use a smaller model, or add threads. |
 | Nothing happens / errors | Open the dev console (Cmd-Opt-I → Console); errors are tagged `[meeting-notes]`. |
 

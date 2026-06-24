@@ -116,7 +116,7 @@ export class MeetingNotesSettingTab extends PluginSettingTab {
 
 		deviceDropdown(
 			"System audio (loopback)",
-			"The other participants. Select your BlackHole / loopback device.",
+			"The other participants. Select your loopback (virtual audio) device.",
 			this.plugin.settings.systemDeviceId,
 			async (v) => {
 				this.plugin.settings.systemDeviceId = v;

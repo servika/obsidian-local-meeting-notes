@@ -62,6 +62,10 @@
                         <PasswordBox x:Name="ClaudeKeyBox" />
                         <TextBox x:Name="ClaudeModelBox" Text="claude-opus-4-8" Margin="0,2,0,0" />
                         <Button Content="Save settings" Click="OnSaveSettings" Margin="0,8,0,0" />
+                        <TextBlock Margin="0,8,0,0" FontSize="11">
+                            <Hyperlink NavigateUri="https://github.com/servika/ai-meeting-notes/blob/main/THIRD-PARTY-NOTICES.md"
+                                       RequestNavigate="OnOpenLink">Credits &amp; licenses</Hyperlink>
+                        </TextBlock>
                     </StackPanel>
                 </Expander>
             </StackPanel>
