@@ -1,0 +1,13 @@
+# .NET build artifacts
+bin/
+obj/
+*.user
+.vs/
+
+# Publish output
+publish/
+*.msix
+*.msi
+
+# Bundled native binaries (whisper-cli.exe, models) - fetched/built, not committed
+vendor/

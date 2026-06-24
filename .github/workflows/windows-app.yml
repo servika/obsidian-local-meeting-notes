@@ -1,0 +1,33 @@
+name: Windows app
+
+# Builds the Windows app (incl. the Windows-only WASAPI/WinUI projects that can't
+# build on the macOS dev machine) and runs the portable Core unit tests.
+on:
+  push:
+    branches: [main]
+    paths: ["packages/meeting-notes-windows/**", ".github/workflows/windows-app.yml"]
+  pull_request:
+    paths: ["packages/meeting-notes-windows/**", ".github/workflows/windows-app.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: packages/meeting-notes-windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore MeetingNotes.sln
+
+      - name: Build (Release)
+        run: dotnet build MeetingNotes.sln -c Release --no-restore
+
+      - name: Test (Core)
+        run: dotnet test tests/MeetingNotes.Core.Tests/MeetingNotes.Core.Tests.csproj -c Release --no-build --verbosity normal

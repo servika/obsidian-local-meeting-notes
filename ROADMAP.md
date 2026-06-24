@@ -37,6 +37,24 @@ exits after each transcription.)
   outbound check, no telemetry. Pairs with proper signing/notarization above so
   the downloaded update isn't Gatekeeper-blocked.
 
+## Windows app (active)
+
+A native Windows port in a new package `packages/meeting-notes-windows/`, leaving
+the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLAN.md)**.
+
+- **Stack:** .NET 8 + C#, NAudio for capture, WinUI 3 UI (WPF fallback).
+- **Zero-setup system audio** via WASAPI loopback (`WasapiLoopbackCapture`) + mic
+  via `WasapiCapture`, as two separate tracks - the Windows equivalent of the
+  macOS Core Audio process taps, no virtual device required.
+- **Reused logic (re-implemented in C#):** whisper.cpp transcription + You/Them
+  two-track merge, Ollama/Claude summarization with map-reduce, Markdown note
+  storage in the Obsidian vault. These are pure logic/HTTP/filesystem.
+- **v1 = MVP:** record → transcribe → summarize → note. Diarization, auto
+  meeting-detection, tray UI, ETA, and the in-app model downloader are deferred
+  (see the plan's Phase 7).
+- **Distribution:** GitHub Release `.msi`/MSIX + Windows download on the landing
+  page; Authenticode signing (Azure Trusted Signing) is the notarization analogue.
+
 ## Summary quality
 
 - **Meeting category (1:1, daily sync, planning, …).**
@@ -124,12 +142,9 @@ See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
 
 ## Postponed
 
-- **Windows / cross-platform app.** Postponed. The current macOS app can't be
-  ported directly: SwiftUI, Core Audio process taps (zero-setup system-audio
-  capture), and AVFoundation are Apple-only. whisper.cpp and the Ollama/Claude
-  summarization logic are cross-platform. Options when revisited:
-  1. Windows users use the **Obsidian plugin** today + a loopback device
-     (Stereo Mix / VB-Audio Cable) for system audio.
-  2. A **cross-platform rewrite** (e.g. Tauri) reusing whisper + summarization,
-     reimplementing capture with WASAPI loopback (system) and WASAPI (mic), and
-     a single shared UI for macOS + Windows - preferred over a Windows-only fork.
+_None currently._
+
+(The **Windows app** moved from Postponed to active - see the "Windows app"
+section above and [WINDOWS-PLAN.md](WINDOWS-PLAN.md). Decided on a Windows-native
+.NET/C# app rather than a cross-platform Tauri rewrite, to avoid re-doing the
+mature macOS app and to use NAudio's strong WASAPI loopback support.)
