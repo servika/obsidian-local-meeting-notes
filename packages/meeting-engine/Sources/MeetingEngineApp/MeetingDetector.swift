@@ -18,6 +18,9 @@ final class MeetingDetector: ObservableObject {
 	var isBusy: () -> Bool = { false }
 	/// Whether suggestions are enabled in Settings.
 	var isEnabled: () -> Bool = { true }
+	/// Fired once on the rising edge when a meeting is first detected (and enabled).
+	/// Lets the app post a system notification alongside the in-app nudge.
+	var onDetected: () -> Void = {}
 
 	private var timer: Timer?
 	private var wasInUse = false
@@ -62,6 +65,7 @@ final class MeetingDetector: ObservableObject {
 		if isBusy() || !isEnabled() { return }
 		if !wasInUse && !dismissedThisCall {
 			suggestRecording = true
+			onDetected()
 		}
 	}
 

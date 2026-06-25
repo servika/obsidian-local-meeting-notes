@@ -123,14 +123,12 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
   embedding model (wespeaker over-split least in testing), and fold the mic
   "You" track into the embedding space so a remote echo of the user isn't
   counted as a separate "Them".
-- **Native macOS notification on meeting detection.**
-  The app already detects when another app (Zoom, Teams, Meet, FaceTime…) starts
-  using the mic and shows an in-app "Start recording?" nudge. Extend this to a
-  **system notification** (User Notifications / `UNUserNotificationCenter`) so the
-  user is alerted even when the app is in the background or hidden - with a "Record"
-  action button on the notification that starts capture directly. Respect the
-  existing "Suggest recording when a meeting is detected" toggle; request
-  notification permission on first use; throttle so it fires once per meeting.
+- ✅ **Native macOS notification on meeting detection.** Shipped in 0.28.0. A
+  system notification ("Meeting detected", with a **Record** action) fires when
+  another app starts using the mic while AI Meeting Notes is backgrounded/hidden
+  (`UNUserNotificationCenter`); the in-app nudge still covers the foreground.
+  Respects the "Suggest recording…" toggle, asks permission on first use, once per
+  meeting.
 - **Chat over meetings (RAG).**
   Ask questions across the meeting archive.
 

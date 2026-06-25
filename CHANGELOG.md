@@ -13,9 +13,16 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
-### [0.27.2] - 2026-06-25
+### [0.28.0] - 2026-06-25
 
 #### Added
+- **Native macOS notification on meeting detection.** When another app (Zoom,
+  Teams, Meet, FaceTime…) starts using your mic while AI Meeting Notes is in the
+  background or hidden, you now get a system notification ("Meeting detected") with
+  a **Record** action that starts capture directly. Foreground keeps the existing
+  in-app nudge (no double-alert). Respects the "Suggest recording when a meeting is
+  detected" toggle, asks for notification permission on first use, and fires once
+  per meeting.
 - **First-run onboarding in the main window.** Before a notes folder is set, the
   main (detail) area now shows a "Welcome to AI Meeting Notes" prompt with an
   **Open Settings to set up** button, instead of the unhelpful "No meeting
