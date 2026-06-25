@@ -1,8 +1,9 @@
 # Roadmap
 
-Planned and in-progress work for the **AI Meeting Notes** macOS app
-(`packages/meeting-engine`). Items are grouped by theme and roughly ordered by
-priority within each group. Nothing here is started unless marked otherwise.
+Planned and in-progress work for **AI Meeting Notes** - the macOS app
+(`packages/meeting-engine`) and the Windows app (`packages/meeting-notes-windows`).
+Items are grouped by theme and roughly ordered by priority within each group.
+Nothing here is started unless marked otherwise.
 
 See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
@@ -21,13 +22,13 @@ exits after each transcription.)
 
 ## Distribution & packaging
 
-- **Developer ID signing + notarization + DMG.**
-  Scripts already exist (`scripts/build-app.sh`, `scripts/make-dmg.sh`,
-  `scripts/app.entitlements`) and are env-var gated on `DEVELOPER_ID_APP` /
-  `NOTARY_PROFILE`. Blocked on enrolling in the Apple Developer Program
-  ($99/yr). Until then the app is ad-hoc signed (Gatekeeper warning on other
-  Macs). Mac App Store is ruled out - the sandbox forbids process-tap
-  system-audio capture and shelling out to `whisper-cli`.
+- ✅ **Developer ID signing + notarization + DMG.** Shipped (first signed release
+  0.26.0). `scripts/make-dmg.sh --release` builds, signs with Developer ID,
+  notarizes, staples, and publishes a GitHub release with the DMG - gated on
+  `DEVELOPER_ID_APP` / `NOTARY_PROFILE`. Apple Developer Program enrollment is
+  done; the public download opens with no Gatekeeper warning. Mac App Store stays
+  ruled out - the sandbox forbids process-tap system-audio capture and shelling
+  out to `whisper-cli`.
 - ✅ **Check for a new version.** Shipped in 0.27.0. On launch (throttled to once
   a day) the app queries the GitHub Releases API for the latest macOS `v*` release,
   and shows a dismissible "Version X is available - Download" bar plus a manual
@@ -51,9 +52,12 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
 - **v1 = MVP:** record → transcribe → summarize → note (Phases 0-6 shipped:
   engine + WPF UI + in-app model download + self-contained packaging/installer).
   Diarization, auto meeting-detection, tray UI, and ETA are deferred (plan Phase 7).
-- **Distribution:** the **Windows release** workflow (`win-v*` tag → publish →
-  zip + Inno Setup installer → GitHub Release) is wired and green; landing page has
-  a Windows download. Remaining: cut the first release and the signing below.
+- **Distribution:** the **Windows release** workflow (`win-v*` tag → publish → zip
+  + Inno Setup installer → GitHub Release) is wired and green; the first build
+  shipped as **win-v0.1.0** (unsigned beta, whisper-cli bundled), and the landing
+  page has a Windows download. **Remaining: a real-hardware smoke-test** - the live
+  WASAPI capture and WPF UI are CI-compiled but haven't run on Windows yet - then
+  Authenticode signing (below).
 - **Authenticode signing + SmartScreen (the notarization analogue).**
   The release workflow already signs the published `.exe`s and the installer when
   six repo secrets are set (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
