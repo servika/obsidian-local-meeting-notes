@@ -132,15 +132,6 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
 - **Chat over meetings (RAG).**
   Ask questions across the meeting archive.
 
-## Security & polish
-
-- **Keychain for the Claude API key.**
-  Currently stored in UserDefaults as plaintext; move it to the Keychain.
-- **Add more meeting languages.**
-  Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
-  language list in `meetingLanguages` beyond English/Ukrainian in a future
-  release, so users can pin other languages for best transcription quality.
-
 ## Completed
 
 See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
@@ -186,7 +177,12 @@ See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
 
 ## Postponed
 
-_None currently._
+- **Keychain for the Claude API key.**
+  Currently stored in UserDefaults as plaintext; move it to the Keychain.
+- **Add more meeting languages.**
+  Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
+  language list in `meetingLanguages` beyond English/Ukrainian in a future
+  release, so users can pin other languages for best transcription quality.
 
 (The **Windows app** moved from Postponed to active - see the "Windows app"
 section above and [WINDOWS-PLAN.md](WINDOWS-PLAN.md). Decided on a Windows-native
