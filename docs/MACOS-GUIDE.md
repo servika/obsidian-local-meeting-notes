@@ -33,8 +33,8 @@ On first launch the main window guides you to set up.
    your notes. **Any folder works** - if it's an Obsidian vault, the notes show up
    there too, but Obsidian is optional. Notes are saved as plain Markdown.
 
-> 📸 `images/02-welcome.png` - the “Welcome / Open Settings to set up” main window.
-> 📸 `images/03-settings-storage.png` - Settings → General with the notes folder chosen.
+![the “Welcome / Open Settings to set up” main window](images/02-welcome.png)
+![Settings → General with the notes folder chosen](images/03-settings-storage.png)
 
 ---
 
@@ -49,7 +49,7 @@ In **Settings → Transcription**:
 3. Set **Language** to `auto` (or a specific language for best accuracy). A green
    ✓ next to the model means it's ready.
 
-> 📸 `images/04-transcription-tab.png` - Transcription tab with a model downloaded (green ✓).
+![Transcription tab with a model downloaded (green ✓)](images/04-transcription-tab.png)
 
 ---
 
@@ -65,7 +65,7 @@ Summaries are optional. In **Settings → Summary**:
   - **Claude API** - paste your API key; transcript text is sent to Anthropic.
 - Leave it off to get transcript-only notes.
 
-> 📸 `images/05-summary-tab.png` - Summary tab (Ollama running, model picker + Download).
+![Summary tab (Ollama running, model picker + Download)](images/05-summary-tab.png)
 
 ---
 
@@ -130,7 +130,9 @@ The app checks for new versions once a day. When one's available, a
 **“Version X is available - Download”** bar appears at the top of the window.
 You can also check manually in **Settings → About → Check for updates**.
 
-> 📸 `images/10-update-bar.png` - the “update available” bar.
+![Settings → About - version and Check for updates](images/about-tab.png)
+
+> 📸 `images/10-update-bar.png` - the “update available” bar (shown when a newer version exists).
 
 ---
 
