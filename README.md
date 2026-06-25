@@ -6,7 +6,11 @@
 > choose. No cloud, no API keys, no companion server. Your audio never leaves your
 > machine.
 
-![status: alpha](https://img.shields.io/badge/status-alpha-orange) ![platform: macOS%20%26%20Windows](https://img.shields.io/badge/platform-macOS%20%26%20Windows-blue) ![license: MIT](https://img.shields.io/badge/license-MIT-green)
+[![macOS release](https://img.shields.io/github/v/release/servika/ai-meeting-notes?filter=v*&label=macOS&logo=apple&logoColor=white&color=111111)](https://github.com/servika/ai-meeting-notes/releases/latest)
+[![Windows release](https://img.shields.io/github/v/release/servika/ai-meeting-notes?filter=win-v*&label=Windows&logo=windows&logoColor=white&color=0078D6)](https://github.com/servika/ai-meeting-notes/releases?q=win&expanded=true)
+[![Downloads](https://img.shields.io/github/downloads/servika/ai-meeting-notes/total?label=downloads&color=6f42c1)](https://github.com/servika/ai-meeting-notes/releases)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Built with Swift &amp; .NET](https://img.shields.io/badge/built%20with-Swift%20%26%20.NET-orange)
 
 🌐 **Website / downloads:** https://servika.github.io/ai-meeting-notes/
 
