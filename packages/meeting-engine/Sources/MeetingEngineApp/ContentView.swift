@@ -102,6 +102,16 @@ struct ContentView: View {
 					onCompress: { controller.compressAudio(meeting) },
 					onDelete: { store.delete(meeting); selection = nil },
 					onCancel: { controller.cancelProcessing() })
+			} else if settings.meetingsDirURL == nil {
+				// First run: guide the user to set up before anything else.
+				ContentUnavailableView {
+					Label("Welcome to AI Meeting Notes", systemImage: "waveform")
+				} description: {
+					Text("To get started, choose a folder where your meeting notes will be saved. Then pick a transcription model, and you're ready to record.")
+				} actions: {
+					SettingsLink { Text("Open Settings to set up") }
+						.buttonStyle(.borderedProminent)
+				}
 			} else {
 				ContentUnavailableView("No meeting selected", systemImage: "waveform",
 					description: Text("Record a meeting, or pick one from the list."))

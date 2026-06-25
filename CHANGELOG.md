@@ -13,6 +13,15 @@ This repo ships two apps, versioned independently:
 
 ## macOS app
 
+### [0.27.2] - 2026-06-25
+
+#### Added
+- **First-run onboarding in the main window.** Before a notes folder is set, the
+  main (detail) area now shows a "Welcome to AI Meeting Notes" prompt with an
+  **Open Settings to set up** button, instead of the unhelpful "No meeting
+  selected". (The record panel already showed a smaller "choose a folder" banner;
+  this makes the central area guide first-time users too.)
+
 ### [0.27.1] - 2026-06-24
 
 #### Added
