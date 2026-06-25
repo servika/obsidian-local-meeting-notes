@@ -13,29 +13,6 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 _None currently._
 
-(Fixed: "processing bar showed on the wrong meeting" - 0.21.1 scopes the busy UI
-to `controller.activeID == meeting.id`.)
-
-(Fixed: "model stays in memory after processing" - 0.21.3 sends `keep_alive: 0`
-so Ollama unloads the summary model right after summarizing; whisper-cli already
-exits after each transcription.)
-
-## Distribution & packaging
-
-- ✅ **Developer ID signing + notarization + DMG.** Shipped (first signed release
-  0.26.0). `scripts/make-dmg.sh --release` builds, signs with Developer ID,
-  notarizes, staples, and publishes a GitHub release with the DMG - gated on
-  `DEVELOPER_ID_APP` / `NOTARY_PROFILE`. Apple Developer Program enrollment is
-  done; the public download opens with no Gatekeeper warning. Mac App Store stays
-  ruled out - the sandbox forbids process-tap system-audio capture and shelling
-  out to `whisper-cli`.
-- ✅ **Check for a new version.** Shipped in 0.27.0. On launch (throttled to once
-  a day) the app queries the GitHub Releases API for the latest macOS `v*` release,
-  and shows a dismissible "Version X is available - Download" bar plus a manual
-  **Check for updates** button in Settings → About. Privacy-safe: one outbound
-  request, no telemetry, no auto-install (Download opens the release page).
-  Possible follow-up: one-click download + auto-relaunch (e.g. Sparkle).
-
 ## Windows app (active)
 
 A native Windows port in a new package `packages/meeting-notes-windows/`, leaving
@@ -136,6 +113,19 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
 
 See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
 
+- ✅ **Developer ID signing + notarization + DMG.** Shipped (first signed release
+  0.26.0). `scripts/make-dmg.sh --release` builds, signs with Developer ID,
+  notarizes, staples, and publishes a GitHub release with the DMG - gated on
+  `DEVELOPER_ID_APP` / `NOTARY_PROFILE`. Apple Developer Program enrollment is
+  done; the public download opens with no Gatekeeper warning. Mac App Store stays
+  ruled out - the sandbox forbids process-tap system-audio capture and shelling
+  out to `whisper-cli`.
+- ✅ **Check for a new version.** Shipped in 0.27.0. On launch (throttled to once
+  a day) the app queries the GitHub Releases API for the latest macOS `v*` release,
+  and shows a dismissible "Version X is available - Download" bar plus a manual
+  **Check for updates** button in Settings → About. Privacy-safe: one outbound
+  request, no telemetry, no auto-install (Download opens the release page).
+  Possible follow-up: one-click download + auto-relaunch (e.g. Sparkle).
 - ✅ **Map-reduce summarization for long meetings.** Shipped in 0.22.0.
   Transcripts over ~40k chars are split into ~24k-char chunks (fits even modest
   context windows), each summarized into partial notes (map), then combined into
@@ -174,6 +164,13 @@ See [CHANGELOG.md](CHANGELOG.md) for the full shipped history. Highlights:
   processing bar - covers transcription *and* the opaque summary phase. Replaced
   the 0.18.0 progress-extrapolation ETA, which couldn't see the summary phase.
   Rates persist in UserDefaults (`procRate.<model>`).
+
+(Fixed: "processing bar showed on the wrong meeting" - 0.21.1 scopes the busy UI
+to `controller.activeID == meeting.id`.)
+
+(Fixed: "model stays in memory after processing" - 0.21.3 sends `keep_alive: 0`
+so Ollama unloads the summary model right after summarizing; whisper-cli already
+exits after each transcription.)
 
 ## Postponed
 
