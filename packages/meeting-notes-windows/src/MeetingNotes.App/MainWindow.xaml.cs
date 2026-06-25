@@ -27,9 +27,19 @@ public partial class MainWindow : Window
         InitializeComponent();
         ModelPicker.ItemsSource = ModelDownloader.Available;
         ModelPicker.SelectedItem = "base";
+        PopulateMicDevices();
         LoadSettings();
         ApplyDefaults();
         RefreshMeetings();
+    }
+
+    /// <summary>Fill the mic picker: a "Default" entry plus each active input device.</summary>
+    private void PopulateMicDevices()
+    {
+        var devices = new List<InputDevice> { new("", "Default microphone") };
+        try { devices.AddRange(MeetingRecorder.InputDevices()); } catch { /* enumeration best-effort */ }
+        MicPicker.ItemsSource = devices;
+        MicPicker.SelectedValue = "";
     }
 
     /// <summary>Fill in sensible paths the app can resolve itself, so first run needs no typing.</summary>
@@ -118,7 +128,8 @@ public partial class MainWindow : Window
         });
         try
         {
-            _recorder.Start(_outBase);
+            var micId = MicPicker.SelectedValue as string;
+            _recorder.Start(_outBase, string.IsNullOrEmpty(micId) ? null : micId);
         }
         catch (Exception ex)
         {
@@ -165,7 +176,7 @@ public partial class MainWindow : Window
             };
             await Task.Run(() => pipeline.ProcessAsync(
                 result.SystemPath, result.MicPath, title, _recordStart, _audioBase, duration, 0, opts));
-            StatusText.Text = "Done.";
+            StatusText.Text = result.MicWarning is null ? "Done." : "Done.  ⚠ " + result.MicWarning;
             RefreshMeetings();
         }
         catch (Exception ex)
@@ -208,13 +219,14 @@ public partial class MainWindow : Window
     private sealed record Settings(
         string Vault = "", string Model = "", string Whisper = "", string Language = "auto",
         int Engine = 0, string OllamaUrl = "http://localhost:11434", string OllamaModel = "qwen2.5:7b",
-        string ClaudeModel = "claude-opus-4-8");
+        string ClaudeModel = "claude-opus-4-8", string MicDeviceId = "");
 
     private void OnSaveSettings(object sender, RoutedEventArgs e)
     {
         var s = new Settings(
             VaultBox.Text, ModelBox.Text, WhisperBox.Text, LanguageBox.Text,
-            EngineBox.SelectedIndex, OllamaUrlBox.Text, OllamaModelBox.Text, ClaudeModelBox.Text);
+            EngineBox.SelectedIndex, OllamaUrlBox.Text, OllamaModelBox.Text, ClaudeModelBox.Text,
+            (MicPicker.SelectedValue as string) ?? "");
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
         File.WriteAllText(SettingsPath, JsonSerializer.Serialize(s));
         StatusText.Text = "Settings saved.";
@@ -234,5 +246,8 @@ public partial class MainWindow : Window
         OllamaUrlBox.Text = s.OllamaUrl;
         OllamaModelBox.Text = s.OllamaModel;
         ClaudeModelBox.Text = s.ClaudeModel;
+        // Restore the saved mic if it still exists; otherwise fall back to Default.
+        MicPicker.SelectedValue = s.MicDeviceId;
+        if (MicPicker.SelectedValue is null) MicPicker.SelectedValue = "";
     }
 }

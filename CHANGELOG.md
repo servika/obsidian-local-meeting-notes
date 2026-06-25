@@ -4,10 +4,11 @@ All notable changes are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-This repo ships two apps, versioned independently:
+This repo ships these apps, versioned independently:
 
 - **macOS app** - `packages/meeting-engine` (version in `packages/meeting-engine/VERSION`)
-- **Obsidian plugin** - `packages/ai-meeting-notes` (version in its `manifest.json`)
+- **Windows app** - `packages/meeting-notes-windows` (version in its `VERSION`)
+- **Obsidian plugin** (legacy) - `packages/ai-meeting-notes` (version in its `manifest.json`)
 
 ---
 
@@ -544,6 +545,28 @@ First release of the standalone macOS app.
 - App **icon** and a signed **`.dmg`** build with Developer ID + notarization hooks.
 
 ---
+
+## Windows app
+
+### [0.1.1] - 2026-06-25
+
+#### Fixed
+- **Microphone capture is now resilient.** If the mic can't start (no device, in
+  use, or blocked), the recording no longer aborts - system audio is still captured
+  and a clear warning is shown. After a recording, a flat/empty mic track is
+  detected and surfaced ("No microphone audio captured - check Windows mic
+  permissions…").
+
+#### Added
+- **Microphone picker in Settings.** Choose a specific input device (or Default);
+  the choice is saved. Helps when the default capture endpoint isn't your mic.
+
+### [0.1.0] - 2026-06-24
+
+#### Added
+- **Initial Windows build (beta).** Native .NET 8 / WPF port: WASAPI loopback +
+  mic capture as two tracks, whisper.cpp transcription, Ollama/Claude summarization,
+  Markdown notes, in-app whisper-model download, self-contained installer + zip.
 
 ## Obsidian plugin
 

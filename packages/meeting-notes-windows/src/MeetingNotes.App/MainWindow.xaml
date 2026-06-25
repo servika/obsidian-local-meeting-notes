@@ -45,6 +45,9 @@
                             <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseWhisper" />
                             <TextBox x:Name="WhisperBox" />
                         </DockPanel>
+                        <TextBlock Text="Microphone" Margin="0,6,0,0" />
+                        <ComboBox x:Name="MicPicker" DisplayMemberPath="Name" SelectedValuePath="Id" />
+
                         <TextBlock Text="Language" Margin="0,6,0,0" />
                         <TextBox x:Name="LanguageBox" Text="auto" />
                         <CheckBox x:Name="TranscribeCheck" Content="Transcribe" IsChecked="True" Margin="0,6,0,0" />
