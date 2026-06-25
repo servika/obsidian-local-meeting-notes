@@ -106,8 +106,6 @@ the macOS app untouched. Full step-by-step plan: **[WINDOWS-PLAN.md](WINDOWS-PLA
   (`UNUserNotificationCenter`); the in-app nudge still covers the foreground.
   Respects the "Suggest recording…" toggle, asks permission on first use, once per
   meeting.
-- **Chat over meetings (RAG).**
-  Ask questions across the meeting archive.
 
 ## Completed
 
@@ -180,6 +178,8 @@ exits after each transcription.)
   Keep **Auto-detect** as an option (decided - it stays). Expand the explicit
   language list in `meetingLanguages` beyond English/Ukrainian in a future
   release, so users can pin other languages for best transcription quality.
+- **Chat over meetings (RAG).**
+  Ask questions across the meeting archive.
 
 (The **Windows app** moved from Postponed to active - see the "Windows app"
 section above and [WINDOWS-PLAN.md](WINDOWS-PLAN.md). Decided on a Windows-native
