@@ -1,86 +1,113 @@
-<Window x:Class="MeetingNotes.App.MainWindow"
+<ui:FluentWindow x:Class="MeetingNotes.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="AI Meeting Notes" Height="640" Width="980">
-    <Grid Margin="12">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="AI Meeting Notes" Height="660" Width="1020"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <!-- Left: controls, settings, meeting list -->
-        <DockPanel Grid.Column="0" Margin="0,0,12,0">
-            <StackPanel DockPanel.Dock="Top">
-                <Button x:Name="RecordButton" Content="● Record" Height="40" FontSize="16"
-                        Click="OnRecordClick" />
-                <TextBlock x:Name="StatusText" Margin="0,8" TextWrapping="Wrap" Text="Idle." />
+        <ui:TitleBar Grid.Row="0" Title="AI Meeting Notes" />
 
-                <TextBlock Text="System" Margin="0,4,0,0" />
-                <ProgressBar x:Name="SystemLevel" Height="8" Minimum="0" Maximum="1" />
-                <TextBlock Text="Mic" Margin="0,4,0,0" />
-                <ProgressBar x:Name="MicLevel" Height="8" Minimum="0" Maximum="1" />
+        <Grid Grid.Row="1" Margin="16,4,16,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <Expander Header="Settings" Margin="0,10,0,0" IsExpanded="True">
+            <!-- Left: record controls, settings, meeting list -->
+            <DockPanel Grid.Column="0" Margin="0,0,14,0">
+                <ui:Card DockPanel.Dock="Top" Padding="14">
                     <StackPanel>
-                        <DockPanel>
-                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseVault" />
-                            <TextBlock Text="Vault - Meetings folder" VerticalAlignment="Center" />
-                        </DockPanel>
-                        <TextBox x:Name="VaultBox" />
+                        <ui:Button x:Name="RecordButton" Content="● Record" Height="42" FontSize="15"
+                                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                   Appearance="Primary" Click="OnRecordClick" />
+                        <TextBlock x:Name="StatusText" Margin="0,10,0,2" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Idle." />
 
-                        <TextBlock Text="Whisper model (.bin)" Margin="0,6,0,0" />
-                        <DockPanel>
-                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseModel" />
-                            <TextBox x:Name="ModelBox" />
-                        </DockPanel>
-                        <DockPanel Margin="0,2,0,0">
-                            <Button x:Name="DownloadButton" Content="Download" DockPanel.Dock="Right"
-                                    Padding="6,0" Click="OnDownloadModel" />
-                            <ComboBox x:Name="ModelPicker" />
-                        </DockPanel>
-                        <ProgressBar x:Name="DownloadProgress" Height="6" Minimum="0" Maximum="1" Margin="0,2,0,0" />
+                        <TextBlock Text="System" Margin="0,8,0,2" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ProgressBar x:Name="SystemLevel" Height="6" Minimum="0" Maximum="1" />
+                        <TextBlock Text="Mic" Margin="0,6,0,2" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <ProgressBar x:Name="MicLevel" Height="6" Minimum="0" Maximum="1" />
 
-                        <TextBlock Text="whisper-cli.exe" Margin="0,6,0,0" />
-                        <DockPanel>
-                            <Button Content="Browse..." DockPanel.Dock="Right" Padding="6,0" Click="OnBrowseWhisper" />
-                            <TextBox x:Name="WhisperBox" />
-                        </DockPanel>
-                        <TextBlock Text="Microphone" Margin="0,6,0,0" />
-                        <ComboBox x:Name="MicPicker" DisplayMemberPath="Name" SelectedValuePath="Id" />
+                        <Expander Header="Settings" Margin="0,12,0,0" IsExpanded="True">
+                            <StackPanel Margin="0,8,0,0">
+                                <DockPanel>
+                                    <ui:Button Content="Browse…" DockPanel.Dock="Right" Margin="6,0,0,0" Click="OnBrowseVault" />
+                                    <TextBlock Text="Notes folder" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <ui:TextBox x:Name="VaultBox" PlaceholderText="Folder where notes are saved" Margin="0,2,0,0" />
 
-                        <TextBlock Text="Language" Margin="0,6,0,0" />
-                        <TextBox x:Name="LanguageBox" Text="auto" />
-                        <CheckBox x:Name="TranscribeCheck" Content="Transcribe" IsChecked="True" Margin="0,6,0,0" />
-                        <CheckBox x:Name="SummarizeCheck" Content="Summarize" IsChecked="True" />
-                        <TextBlock Text="Summary engine" Margin="0,6,0,0" />
-                        <ComboBox x:Name="EngineBox" SelectedIndex="0">
-                            <ComboBoxItem Content="None" />
-                            <ComboBoxItem Content="Ollama" />
-                            <ComboBoxItem Content="Claude" />
-                        </ComboBox>
-                        <TextBlock Text="Ollama URL / model" Margin="0,6,0,0" />
-                        <TextBox x:Name="OllamaUrlBox" Text="http://localhost:11434" />
-                        <TextBox x:Name="OllamaModelBox" Text="qwen2.5:7b" Margin="0,2,0,0" />
-                        <TextBlock Text="Claude API key / model" Margin="0,6,0,0" />
-                        <PasswordBox x:Name="ClaudeKeyBox" />
-                        <TextBox x:Name="ClaudeModelBox" Text="claude-opus-4-8" Margin="0,2,0,0" />
-                        <Button Content="Save settings" Click="OnSaveSettings" Margin="0,8,0,0" />
-                        <TextBlock Margin="0,8,0,0" FontSize="11">
-                            <Hyperlink NavigateUri="https://github.com/servika/ai-meeting-notes/blob/main/THIRD-PARTY-NOTICES.md"
-                                       RequestNavigate="OnOpenLink">Credits &amp; licenses</Hyperlink>
-                        </TextBlock>
+                                <TextBlock Text="Whisper model (.bin)" Margin="0,10,0,2" />
+                                <DockPanel>
+                                    <ui:Button Content="Browse…" DockPanel.Dock="Right" Margin="6,0,0,0" Click="OnBrowseModel" />
+                                    <ui:TextBox x:Name="ModelBox" />
+                                </DockPanel>
+                                <DockPanel Margin="0,4,0,0">
+                                    <ui:Button x:Name="DownloadButton" Content="Download" DockPanel.Dock="Right"
+                                               Margin="6,0,0,0" Click="OnDownloadModel" />
+                                    <ComboBox x:Name="ModelPicker" />
+                                </DockPanel>
+                                <ProgressBar x:Name="DownloadProgress" Height="4" Minimum="0" Maximum="1" Margin="0,4,0,0" />
+
+                                <TextBlock Text="whisper-cli.exe" Margin="0,10,0,2" />
+                                <DockPanel>
+                                    <ui:Button Content="Browse…" DockPanel.Dock="Right" Margin="6,0,0,0" Click="OnBrowseWhisper" />
+                                    <ui:TextBox x:Name="WhisperBox" />
+                                </DockPanel>
+
+                                <TextBlock Text="Microphone" Margin="0,10,0,2" />
+                                <ComboBox x:Name="MicPicker" DisplayMemberPath="Name" SelectedValuePath="Id" HorizontalAlignment="Stretch" />
+
+                                <TextBlock Text="Language" Margin="0,10,0,2" />
+                                <ui:TextBox x:Name="LanguageBox" Text="auto" />
+
+                                <CheckBox x:Name="TranscribeCheck" Content="Transcribe" IsChecked="True" Margin="0,10,0,0" />
+                                <CheckBox x:Name="SummarizeCheck" Content="Summarize" IsChecked="True" />
+
+                                <TextBlock Text="Summary engine" Margin="0,10,0,2" />
+                                <ComboBox x:Name="EngineBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="None" />
+                                    <ComboBoxItem Content="Ollama" />
+                                    <ComboBoxItem Content="Claude" />
+                                </ComboBox>
+                                <TextBlock Text="Ollama URL / model" Margin="0,10,0,2" />
+                                <ui:TextBox x:Name="OllamaUrlBox" Text="http://localhost:11434" />
+                                <ui:TextBox x:Name="OllamaModelBox" Text="qwen2.5:7b" Margin="0,4,0,0" />
+                                <TextBlock Text="Claude API key / model" Margin="0,10,0,2" />
+                                <PasswordBox x:Name="ClaudeKeyBox" />
+                                <ui:TextBox x:Name="ClaudeModelBox" Text="claude-opus-4-8" Margin="0,4,0,0" />
+
+                                <ui:Button Content="Save settings" Click="OnSaveSettings" Margin="0,12,0,0"
+                                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                                <TextBlock Margin="0,10,0,0" FontSize="11">
+                                    <Hyperlink NavigateUri="https://github.com/servika/ai-meeting-notes/blob/main/THIRD-PARTY-NOTICES.md"
+                                               RequestNavigate="OnOpenLink">Credits &amp; licenses</Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
-                </Expander>
-            </StackPanel>
+                </ui:Card>
 
-            <ListBox x:Name="MeetingList" Margin="0,10,0,0"
-                     SelectionChanged="OnMeetingSelected"
-                     DisplayMemberPath="Title" />
-        </DockPanel>
+                <ListBox x:Name="MeetingList" Margin="0,12,0,0"
+                         SelectionChanged="OnMeetingSelected" DisplayMemberPath="Title"
+                         Background="Transparent" BorderThickness="0" />
+            </DockPanel>
 
-        <!-- Right: note detail -->
-        <TextBox Grid.Column="1" x:Name="DetailBox" IsReadOnly="True"
-                 VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
-                 FontFamily="Consolas" AcceptsReturn="True" />
+            <!-- Right: note detail -->
+            <ui:Card Grid.Column="1" Padding="0">
+                <ui:TextBox x:Name="DetailBox" IsReadOnly="True"
+                            VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                            FontFamily="Cascadia Mono, Consolas" AcceptsReturn="True"
+                            BorderThickness="0" Background="Transparent" />
+            </ui:Card>
+        </Grid>
     </Grid>
-</Window>
+</ui:FluentWindow>

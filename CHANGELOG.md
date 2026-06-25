@@ -548,6 +548,14 @@ First release of the standalone macOS app.
 
 ## Windows app
 
+### [0.2.0] - 2026-06-25
+
+#### Changed
+- **Modern Fluent UI.** Adopted the WPF-UI design kit for a native Windows 11
+  look - a Mica window with an integrated title bar, Fluent-styled controls,
+  accent-colored Record button, card surfaces, and proper typography (replaces the
+  plain default WPF chrome). Same layout and features, just much nicer.
+
 ### [0.1.1] - 2026-06-25
 
 #### Fixed

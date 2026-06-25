@@ -19,6 +19,11 @@
     <ProjectReference Include="..\MeetingNotes.Audio\MeetingNotes.Audio.csproj" />
   </ItemGroup>
 
+  <!-- Fluent / WinUI-style design kit for WPF (modern Windows 11 look). -->
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
+  </ItemGroup>
+
   <!--
     Bundle a self-contained whisper-cli.exe (and any VAD/model files) dropped into
     vendor/ by scripts/setup-whisper.ps1, so the app finds it next to its exe via
