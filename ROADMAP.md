@@ -11,7 +11,23 @@ See [CHANGELOG.md](CHANGELOG.md) for what's already shipped.
 
 ## Known bugs
 
-_None currently._
+- **Windows: transcription/summary silently produce an empty note.** Reported on the
+  Windows app: a recording where the mic track is silent (system audio fine) finishes
+  with a note but an empty transcript and summary. Two root causes in the C# port:
+  1. **`WhisperTranscriber.RunAsync` drains stderr but never stdout**
+     (`packages/meeting-notes-windows/.../WhisperTranscriber.cs`). With
+     `RedirectStandardOutput = true` and nobody reading it, whisper-cli's stdout fills
+     the OS pipe buffer on a real meeting and the process **deadlocks** on write, so
+     `WaitForExitAsync` hangs; near-silent/short tracks slip under the buffer and
+     "succeed" with no output. Fix: read stdout and stderr concurrently (or pass
+     `--no-prints`).
+  2. **`if (!File.Exists(jsonPath)) return []`** swallows a missing JSON as "no
+     speech", so a whisper failure (or output written elsewhere) yields an empty note
+     with no error or log. Fix: surface a real error/log when whisper exits clean but
+     produced no JSON.
+  Also port the two macOS transcription fixes shipped in 0.29.0 to the Windows
+  `Transcriber.cs` (same gaps exist there): honor the per-language model override
+  under `auto`, and the cross-track echo dedup for in-person/speakerphone meetings.
 
 ## Windows app (active)
 
