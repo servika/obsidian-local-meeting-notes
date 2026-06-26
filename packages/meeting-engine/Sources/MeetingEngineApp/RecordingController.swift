@@ -107,14 +107,14 @@ final class RecordingController: ObservableObject {
 			// then persisted per meeting and can be corrected before re-generating.
 			let speakers = self.settings.speakerRecognitionEnabled ? self.settings.speakerCount : 0
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
+				let (transcript, summary, model) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
 				// Apply the audio-retention policy - but only when transcription ran,
 				// so an audio-only recording is never compressed/deleted out from under
 				// the user (the audio is the content in that case).
 				let policy = self.settings.transcribeMeetings ? self.settings.audioRetention : "original"
 				if policy != "original" { DispatchQueue.main.async { self.status = "Optimizing audio…" } }
 				let audioExt = Self.finalizeAudio(systemWav: result.systemURL.path, micWav: result.micURL.path, policy: policy)
-				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt)
+				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt, model: model)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: result.duration, model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)" + Self.audioStatusSuffix(policy))
@@ -171,10 +171,10 @@ final class RecordingController: ObservableObject {
 			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
 			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
-				let (transcript, summary) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
+				let (transcript, summary, model) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
 				// Re-generate only re-transcribes; it never changes the audio. Use the
 				// "Compress audio" action to shrink a recording without re-transcribing.
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt)
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt, model: model)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
 				self.finish(status: "✅ Re-generated \(title)")
@@ -224,7 +224,7 @@ final class RecordingController: ObservableObject {
 
 	/// Transcribe both tracks (with weighted progress) and summarize. Runs on a
 	/// background queue; updates `progress`/`status` on the main queue.
-	private func transcribeAndSummarize(systemWav: String, micWav: String, speakerCount: Int, cancel: CancelToken) throws -> (transcript: String, summary: String) {
+	private func transcribeAndSummarize(systemWav: String, micWav: String, speakerCount: Int, cancel: CancelToken) throws -> (transcript: String, summary: String, model: String) {
 		let lang = settings.language.isEmpty ? "auto" : settings.language
 		let model = (settings.modelPath(for: lang) as NSString).expandingTildeInPath
 		let hint = settings.transcriptionPrompt
@@ -232,7 +232,9 @@ final class RecordingController: ObservableObject {
 
 		// Stage 1: transcription (opt-out). When off, we keep just the audio note.
 		var transcript = ""
+		var usedModel = ""
 		if settings.transcribeMeetings {
+			usedModel = Self.modelDisplayName(model)
 			DispatchQueue.main.async { self.status = "Transcribing…"; self.progress = 0.05 }
 			var them = try Transcriber.transcribe(wavPath: systemWav, model: model, language: lang, prompt: hint, speaker: "Them",
 				progress: { setProgress(0.05 + $0 * 0.45) }, cancel: cancel, log: { _ in })
@@ -253,7 +255,9 @@ final class RecordingController: ObservableObject {
 					DispatchQueue.main.async { self.status = "Speaker recognition skipped: \(error)" }
 				}
 			}
-			transcript = Transcriber.diarizedMarkdown(them + you)
+			// Drop cross-track echo (in-person/speakerphone meetings capture the same
+			// room on both tracks) before merging, so the transcript isn't doubled.
+			transcript = Transcriber.diarizedMarkdown(Transcriber.removeCrossTalkEchoes(them + you))
 		}
 
 		if cancel.isCancelled { throw CancelledError() }
@@ -266,7 +270,16 @@ final class RecordingController: ObservableObject {
 			do { summary = try Summarizer.summarize(transcript: transcript, prompt: prompt, engine: engine) }
 			catch { DispatchQueue.main.async { self.status = "Summary skipped: \(error)" } }
 		}
-		return (transcript, summary)
+		return (transcript, summary, usedModel)
+	}
+
+	/// Friendly whisper-model name from its file path, for the note's `model:`
+	/// frontmatter - e.g. "…/ggml-large-v3-turbo.bin" -> "large-v3-turbo".
+	private static func modelDisplayName(_ path: String) -> String {
+		var name = (path as NSString).lastPathComponent
+		if name.hasSuffix(".bin") { name = String(name.dropLast(4)) }
+		if name.hasPrefix("ggml-") { name = String(name.dropFirst(5)) }
+		return name
 	}
 
 	private func finish(status: String) {
@@ -303,11 +316,14 @@ final class RecordingController: ObservableObject {
 
 	/// `audioExt` is the extension of the kept tracks ("wav" or "m4a"), or nil when
 	/// the audio was deleted after transcription.
-	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, speakerCount: Int = 0, summary: String, transcript: String, audioExt: String? = "wav") -> String {
+	private static func buildNote(title: String, date: String, audioBase: String, durationSeconds: Int, speakerCount: Int = 0, summary: String, transcript: String, audioExt: String? = "wav", model: String = "") -> String {
 		let audioName = (audioBase as NSString).lastPathComponent
 		var s = "---\ntype: meeting\ntags: [meeting]\ndate: \(date)\naudio: \(audioBase)\n"
 		if durationSeconds > 0 { s += "duration: \(durationSeconds)\n" }
 		if speakerCount >= 2 { s += "speakers: \(speakerCount)\n" }
+		// Which whisper model produced this transcript - so a garbled note is
+		// traceable to the model used (e.g. a weak default vs. large-v3-turbo).
+		if !model.isEmpty { s += "model: \(model)\n" }
 		s += "app_version: \(appVersion)\n"
 		s += "---\n\n# \(title)\n\n"
 		if !summary.isEmpty { s += summary + "\n\n" }

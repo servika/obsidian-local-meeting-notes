@@ -80,8 +80,19 @@ final class AppSettings: ObservableObject {
 
 	/// The whisper model to use for a given language code: a per-language
 	/// override if one is set, otherwise the default `whisperModelPath`.
+	///
+	/// Under "auto" the user hasn't named a language, so an override keyed on a
+	/// real code (e.g. "uk" -> large-v3-turbo) would otherwise be silently skipped
+	/// and we'd fall back to the weaker default model - which produces garbled,
+	/// hallucinated transcripts on non-English audio. When exactly one override is
+	/// configured, honor it for "auto" too; that's almost always the model the user
+	/// wants. With several overrides we can't disambiguate, so keep the default.
 	func modelPath(for language: String) -> String {
 		if let override = modelByLanguage[language], !override.isEmpty { return override }
+		if language == "auto" || language.isEmpty {
+			let overrides = modelByLanguage.filter { !$0.value.isEmpty }
+			if overrides.count == 1, let only = overrides.first { return only.value }
+		}
 		return whisperModelPath
 	}
 

@@ -14,6 +14,31 @@ This repo ships these apps, versioned independently:
 
 ## macOS app
 
+### [0.29.0] - 2026-06-26
+
+#### Added
+- **More meeting languages in the record-panel picker.** Added Polish, Croatian, and
+  Spanish (Argentina) alongside Auto-detect, English, and Ukrainian. As with any
+  non-English language, transcription needs a multilingual model (not the `.en`
+  variant).
+- **`model:` recorded in note frontmatter.** Each transcribed note now records which
+  whisper model produced it (e.g. `model: large-v3-turbo`), so a garbled transcript
+  is traceable to the model used rather than a mystery.
+
+#### Fixed
+- **Cross-track echo removed from transcripts.** In-person and speakerphone meetings
+  capture the same room on both the mic ("You") and system ("Them") tracks, so every
+  utterance was transcribed twice and the merged transcript came out doubled and
+  mislabeled. Near-duplicate segments that overlap in time are now collapsed to the
+  fullest copy. The pass is conservative - it only drops words already carried by a
+  kept segment, so no content is lost, and genuine remote meetings (different audio
+  per track) are unaffected.
+- **Per-language model override now applies under Auto-detect.** When the meeting
+  language was left at `auto`, a configured override (e.g. large-v3-turbo for
+  Ukrainian) was silently ignored and transcription fell back to the weaker default
+  model - producing garbled, hallucinated transcripts on non-English audio. With a
+  single override configured, it's now honored for `auto` too.
+
 ### [0.28.0] - 2026-06-25
 
 #### Added

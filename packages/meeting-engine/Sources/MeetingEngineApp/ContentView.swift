@@ -39,6 +39,9 @@ let meetingLanguages: [(code: String, name: String)] = [
 	("auto", "Auto-detect"),
 	("en", "English"),
 	("uk", "Ukrainian"),
+	("pl", "Polish"),
+	("hr", "Croatian"),
+	("es", "Spanish (Argentina)"),
 ]
 
 func durationLabel(_ seconds: Int) -> String {

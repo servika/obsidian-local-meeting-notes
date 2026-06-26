@@ -90,6 +90,88 @@ public enum Transcriber {
 		return segments
 	}
 
+	/// Remove cross-track echo before merging. In an in-person or speakerphone
+	/// meeting the mic ("You") and the system-loopback ("Them") tracks pick up the
+	/// same room, so every utterance is transcribed on *both* tracks and the merged
+	/// transcript comes out doubled and mislabeled (the same words alternating
+	/// You/Them with overlapping timestamps).
+	///
+	/// This drops a segment only when its words are largely already covered by the
+	/// segments we're *keeping* from the other speaker at the same time. Segments
+	/// are considered richest-first, so each echo cluster's most complete copy is
+	/// always kept and the thinner duplicates fall away against it - a duplicate is
+	/// never dropped unless a surviving segment carries its words, so no content is
+	/// lost. Genuine remote meetings are untouched: dedup needs both high word
+	/// overlap *and* time overlap, which separate-audio remote speakers don't make.
+	public static func removeCrossTalkEchoes(_ segments: [TranscriptSegment]) -> [TranscriptSegment] {
+		// Nothing to cross-compare unless two speakers are present.
+		guard Set(segments.map { $0.speaker }).count >= 2 else { return segments }
+
+		// Echo/bleed lands near-simultaneously, but whisper segments the two tracks
+		// differently, so allow a few seconds of slack when matching in time.
+		let window = 6.0
+		// A segment must be mostly covered by the other track to count as an echo.
+		let containmentThreshold = 0.75
+		// Skip tiny segments ("yeah", "okay") - too easy to match by accident and
+		// not worth the risk of dropping a real short reply.
+		let minTokens = 4
+
+		let tokens = segments.map { normalizedTokens($0.text) }
+		// Position by start time so each segment only scans nearby ones, not all N.
+		let byStart = segments.indices.sorted { segments[$0].start < segments[$1].start }
+		var pos = [Int](repeating: 0, count: segments.count)
+		for (p, i) in byStart.enumerated() { pos[i] = p }
+		// Decide keep/drop richest-first (more tokens, then earlier, then speaker);
+		// the fullest copy of any duplicated utterance is therefore decided first.
+		let byRichness = segments.indices.sorted { a, b in
+			if tokens[a].count != tokens[b].count { return tokens[a].count > tokens[b].count }
+			if segments[a].start != segments[b].start { return segments[a].start < segments[b].start }
+			return segments[a].speaker < segments[b].speaker
+		}
+
+		var kept = Set<Int>()
+		var dropped = Set<Int>()
+		for i in byRichness {
+			if tokens[i].count < minTokens { kept.insert(i); continue }
+			let si = segments[i]
+
+			// Pool tokens from already-KEPT opposite-speaker segments overlapping i.
+			var pool: [String: Int] = [:]
+			for dir in [-1, 1] {
+				var p = pos[i] + dir
+				while p >= 0 && p < byStart.count {
+					let j = byStart[p]
+					let sj = segments[j]
+					// Sorted by start: once a forward neighbor starts past our window
+					// (or a backward neighbor ends before it), no closer ones remain.
+					if dir == 1 && sj.start > si.end + window { break }
+					if dir == -1 && sj.end < si.start - window { break }
+					p += dir
+					if sj.speaker == si.speaker || !kept.contains(j) { continue }
+					if !(sj.start <= si.end + window && sj.end >= si.start - window) { continue }
+					for t in tokens[j] { pool[t, default: 0] += 1 }
+				}
+			}
+
+			// Multiset containment of i's words within the kept other-track tokens.
+			var matched = 0
+			for t in tokens[i] where (pool[t] ?? 0) > 0 { pool[t]! -= 1; matched += 1 }
+			if Double(matched) / Double(tokens[i].count) >= containmentThreshold {
+				dropped.insert(i)
+			} else {
+				kept.insert(i)
+			}
+		}
+		return segments.enumerated().filter { !dropped.contains($0.offset) }.map { $0.element }
+	}
+
+	/// Lowercased alphanumeric word tokens (Unicode-aware, so Cyrillic counts).
+	private static func normalizedTokens(_ text: String) -> [String] {
+		text.lowercased()
+			.components(separatedBy: CharacterSet.alphanumerics.inverted)
+			.filter { !$0.isEmpty }
+	}
+
 	/// Merge segments from all speakers into a chronological, labeled transcript.
 	/// Consecutive segments from the same speaker are collapsed into one line.
 	public static func diarizedMarkdown(_ segments: [TranscriptSegment]) -> String {
