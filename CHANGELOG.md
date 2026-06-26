@@ -14,6 +14,16 @@ This repo ships these apps, versioned independently:
 
 ## macOS app
 
+### [0.30.0] - 2026-06-26
+
+#### Added
+- **Built-in meeting audio player.** Listen to a recording without juggling its two
+  files - the mic ("You") and system ("Them") tracks are mixed into one timeline and
+  played through a single transport in the meeting detail view: play/pause (Space),
+  back-to-start, jump ±15 s, and a clickable position bar you can scrub to any second.
+  A speed menu offers 0.5×, 1×, 1.5×, 2×, 3×, and 5× with pitch correction so voices
+  stay intelligible. Works with both the original WAVs and compressed m4a tracks.
+
 ### [0.29.0] - 2026-06-26
 
 #### Added

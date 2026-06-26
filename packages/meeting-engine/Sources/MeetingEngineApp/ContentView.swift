@@ -353,6 +353,21 @@ struct MeetingDetail: View {
 	@State private var tab = 0
 	/// Per-meeting remote-speaker count (experimental); seeded from the note.
 	@State private var speakerCount = 0
+	@StateObject private var player = MeetingAudioPlayer()
+
+	/// The meeting's playable tracks (mic + system), preferring the uncompressed
+	/// WAVs but falling back to the compressed m4a after the audio was shrunk.
+	private var audioURLs: [URL] {
+		guard let dir = settings.meetingsDirURL else { return [] }
+		let base = RecordingController.frontmatterValue("audio", in: content) ?? "recordings/\(meeting.title)"
+		return ["mic", "system"].compactMap { part -> URL? in
+			for ext in ["wav", "m4a"] {
+				let u = dir.appendingPathComponent("\(base).\(part).\(ext)")
+				if FileManager.default.fileExists(atPath: u.path) { return u }
+			}
+			return nil
+		}
+	}
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 0) {
@@ -396,6 +411,11 @@ struct MeetingDetail: View {
 				Label("Duration \(durationLabel(meeting.durationSeconds))", systemImage: "clock")
 					.font(.caption).foregroundStyle(.secondary)
 					.padding(.horizontal, 20).padding(.bottom, 8)
+			}
+
+			// Listen to the meeting: both tracks mixed into one transport.
+			if !audioURLs.isEmpty {
+				AudioPlayerView(player: player)
 			}
 
 			if settings.speakerRecognitionEnabled && !busy {
@@ -472,8 +492,17 @@ struct MeetingDetail: View {
 			}
 			.padding(8)
 		}
-		.onAppear { titleField = meeting.title; speakerCount = meeting.speakerCount }
-		.onChange(of: meeting.id) { titleField = meeting.title; speakerCount = meeting.speakerCount }
+		.onAppear {
+			titleField = meeting.title; speakerCount = meeting.speakerCount
+			let urls = audioURLs
+			Task { await player.load(urls: urls) }
+		}
+		.onChange(of: meeting.id) {
+			titleField = meeting.title; speakerCount = meeting.speakerCount
+			let urls = audioURLs
+			Task { await player.load(urls: urls) }
+		}
+		.onDisappear { player.teardown() }
 	}
 
 	/// Markdown to copy for the active tab: summary, transcript, or the full note.
