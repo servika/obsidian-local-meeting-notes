@@ -12,3 +12,4 @@ data.json
 vendor/
 Screenshot*.png
 input/
+.env
