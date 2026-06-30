@@ -7,17 +7,36 @@ struct MeetingNotesApp: App {
 	@StateObject private var controller: RecordingController
 	@StateObject private var detector: MeetingDetector
 	@StateObject private var updates = UpdateChecker()
+	/// Notion-style floating "are you in a meeting?" card + optional calendar signal.
+	private let prompt = MeetingPromptController()
+	private let calendar = CalendarMonitor()
 
 	init() {
 		let s = AppSettings()
 		let st = MeetingStore()
 		let c = RecordingController(settings: s, store: st)
 		let d = MeetingDetector()
+		let promptCtl = prompt
+		let cal = calendar
 		d.isBusy = { [weak c] in c?.isRecording == true || c?.busy == true }
 		d.isEnabled = { [weak s] in s?.suggestOnMeetingDetected ?? true }
-		// Also raise a system notification when a meeting is detected (covers the
-		// app being in the background/hidden); the in-app nudge stays for foreground.
-		d.onDetected = { Task { @MainActor in NotificationManager.shared.notifyMeetingDetected() } }
+		// On detection, show the floating card over whatever app you're in (we're in
+		// the background then; the in-app banner covers the foreground). When the
+		// calendar is opted in, only prompt during a real event and name it.
+		d.onDetected = { [weak c, weak s, weak d] in
+			Task { @MainActor in
+				guard let c, let s, !NSApp.isActive else { return }
+				var subtitle = "Another app is using your microphone."
+				if s.useCalendarForMeetings {
+					guard let title = cal.currentEventTitle() else { return }
+					subtitle = "“\(title)” is on your calendar right now."
+				}
+				promptCtl.show(
+					subtitle: subtitle,
+					onStart: { d?.clear(); c.start() },
+					onDismiss: { d?.dismiss() })
+			}
+		}
 		_settings = StateObject(wrappedValue: s)
 		_store = StateObject(wrappedValue: st)
 		_controller = StateObject(wrappedValue: c)
@@ -39,6 +58,10 @@ struct MeetingNotesApp: App {
 						NotificationManager.shared.configure()
 						// Tapping "Record" on the notification clears the nudge and starts capture.
 						NotificationManager.shared.onRecord = { detector.clear(); controller.start() }
+						if settings.useCalendarForMeetings { calendar.requestAccess() }
+					}
+					.onChange(of: settings.useCalendarForMeetings) { _, on in
+						if on { calendar.requestAccess() }
 					}
 		}
 		Settings {

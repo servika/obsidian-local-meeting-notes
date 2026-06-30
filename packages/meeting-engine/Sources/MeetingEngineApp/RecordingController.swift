@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import AVFoundation
 import MeetingEngineCore
 
@@ -20,6 +21,16 @@ final class RecordingController: ObservableObject {
 	private var recorder: MeetingRecorder?
 	private var stamp = ""
 	private var procTimer: Timer?
+	// Auto-stop watchdog (for a recording the user forgot to stop).
+	private var watchdog: Timer?
+	private var recordStart: Date?
+	private var lastSound: Date?
+	private var sleepObserver: NSObjectProtocol?
+	private var lockObserver: NSObjectProtocol?
+	/// Below this peak level (0…1) on both tracks counts as "silent".
+	private static let silenceLevel: Float = 0.02
+	/// Hard safety cap: never let a forgotten recording run past this.
+	private static let maxRecordingSeconds: TimeInterval = 4 * 3600
 	private var procStart: Date?
 	/// First reliable (elapsed, progress) sample once processing is underway, used
 	/// to extrapolate "time left" from the live rate - accurate even on the first
@@ -62,6 +73,7 @@ final class RecordingController: ObservableObject {
 			try r.start(outBase: outBase, appName: nil)
 			recorder = r
 			isRecording = true
+			startWatchdog()
 			status = "Recording… click Stop when the meeting ends."
 			// Show the new meeting in the list immediately (and select it), so it's
 			// not confused with whatever was previously highlighted.
@@ -79,6 +91,7 @@ final class RecordingController: ObservableObject {
 
 	func stop() {
 		guard let r = recorder else { return }
+		stopWatchdog()
 		isRecording = false
 		busy = true
 		progress = 0
@@ -107,7 +120,7 @@ final class RecordingController: ObservableObject {
 			// then persisted per meeting and can be corrected before re-generating.
 			let speakers = self.settings.speakerRecognitionEnabled ? self.settings.speakerCount : 0
 			do {
-				let (transcript, summary, model) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
+				let (transcript, summary, model, summaryError) = try self.transcribeAndSummarize(systemWav: result.systemURL.path, micWav: result.micURL.path, speakerCount: speakers, cancel: token)
 				// Apply the audio-retention policy - but only when transcription ran,
 				// so an audio-only recording is never compressed/deleted out from under
 				// the user (the audio is the content in that case).
@@ -117,7 +130,9 @@ final class RecordingController: ObservableObject {
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt, model: model)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: result.duration, model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
-				self.finish(status: "✅ Saved \(noteURL.lastPathComponent)" + Self.audioStatusSuffix(policy))
+				let saved = "Saved \(noteURL.lastPathComponent)" + Self.audioStatusSuffix(policy)
+				self.finish(status: summaryError == nil ? "✅ " + saved
+					: "⚠️ \(saved) - summary failed (\(summaryError!)). Re-generate to retry.")
 			} catch is CancelledError {
 				// Keep the recording as a re-generatable note.
 				let note = Self.buildNote(title: title, date: stamp, audioBase: audioBase, durationSeconds: Int(result.duration.rounded()), speakerCount: speakers, summary: "",
@@ -171,13 +186,26 @@ final class RecordingController: ObservableObject {
 			let estModel = self.settings.modelPath(for: self.settings.language.isEmpty ? "auto" : self.settings.language)
 			self.beginEstimate(audioSeconds: Double(dur), model: estModel)
 			do {
-				let (transcript, summary, model) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
+				let (transcript, summary, model, summaryError) = try self.transcribeAndSummarize(systemWav: systemWav, micWav: micWav, speakerCount: speakers, cancel: token)
+				// If this run's summary failed (e.g. an overloaded local model timed out),
+				// don't wipe the note's existing summary - keep it rather than overwrite it
+				// with nothing. The transcript is always refreshed.
+				var finalSummary = summary
+				if summaryError != nil {
+					let previous = Self.existingSummaryBlock(in: content)
+					if !previous.isEmpty { finalSummary = previous }
+				}
 				// Re-generate only re-transcribes; it never changes the audio. Use the
 				// "Compress audio" action to shrink a recording without re-transcribing.
-				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: summary, transcript: transcript, audioExt: audioExt, model: model)
+				let note = Self.buildNote(title: title, date: date, audioBase: audioBase, durationSeconds: dur, speakerCount: speakers, summary: finalSummary, transcript: transcript, audioExt: audioExt, model: model)
 				try note.write(to: noteURL, atomically: true, encoding: .utf8)
 				Self.recordRate(audioSeconds: Double(dur), model: estModel, processingSeconds: Date().timeIntervalSince(self.procStart ?? Date()))
-				self.finish(status: "✅ Re-generated \(title)")
+				if let summaryError {
+					let kept = Self.existingSummaryBlock(in: content).isEmpty ? "" : " (kept the previous one)"
+					self.finish(status: "⚠️ Re-generated transcript - summary failed\(kept): \(summaryError)")
+				} else {
+					self.finish(status: "✅ Re-generated \(title)")
+				}
 			} catch is CancelledError {
 				self.finish(status: "Stopped. The existing note is unchanged.")
 			} catch {
@@ -224,7 +252,7 @@ final class RecordingController: ObservableObject {
 
 	/// Transcribe both tracks (with weighted progress) and summarize. Runs on a
 	/// background queue; updates `progress`/`status` on the main queue.
-	private func transcribeAndSummarize(systemWav: String, micWav: String, speakerCount: Int, cancel: CancelToken) throws -> (transcript: String, summary: String, model: String) {
+	private func transcribeAndSummarize(systemWav: String, micWav: String, speakerCount: Int, cancel: CancelToken) throws -> (transcript: String, summary: String, model: String, summaryError: String?) {
 		let lang = settings.language.isEmpty ? "auto" : settings.language
 		let model = (settings.modelPath(for: lang) as NSString).expandingTildeInPath
 		let hint = settings.transcriptionPrompt
@@ -263,14 +291,42 @@ final class RecordingController: ObservableObject {
 		if cancel.isCancelled { throw CancelledError() }
 
 		// Stage 2: summary (opt-out). Needs a transcript and a configured engine.
+		// `summaryError` is non-nil when a summary was expected but didn't come through
+		// (engine threw - e.g. an overloaded local model timing out - or returned empty).
+		// Callers use it to avoid clobbering a good existing summary with nothing and to
+		// report the failure honestly instead of a false "done".
 		var summary = ""
+		var summaryError: String?
 		if settings.summarizeMeetings, !transcript.isEmpty, let engine = Self.engine(from: settings) {
 			DispatchQueue.main.async { self.status = "Summarizing…"; self.progress = 0.92 }
 			let prompt = settings.currentPrompt().replacingOccurrences(of: "{{language}}", with: Self.languageName(lang))
-			do { summary = try Summarizer.summarize(transcript: transcript, prompt: prompt, engine: engine) }
-			catch { DispatchQueue.main.async { self.status = "Summary skipped: \(error)" } }
+			do {
+				summary = try Summarizer.summarize(transcript: transcript, prompt: prompt, engine: engine)
+				if summary.isEmpty { summaryError = "the model returned an empty summary" }
+			} catch {
+				summaryError = "\(error)"
+				DispatchQueue.main.async { self.status = "Summary failed: \(error)" }
+			}
 		}
-		return (transcript, summary, usedModel)
+		return (transcript, summary, usedModel, summaryError)
+	}
+
+	/// The summary markdown block (the `## …` sections before Transcript/Audio) from
+	/// an existing note, so a failed re-summary can keep it instead of erasing it.
+	/// Empty when the note has no recognizable summary sections.
+	static func existingSummaryBlock(in content: String) -> String {
+		var body = content
+		if body.hasPrefix("---"),
+			let end = body.range(of: "\n---", range: body.index(body.startIndex, offsetBy: 3)..<body.endIndex) {
+			body = String(body[end.upperBound...])
+		}
+		// Cut off the Transcript/Audio sections - everything after the summary.
+		for marker in ["\n## Transcript", "\n## Audio"] {
+			if let r = body.range(of: marker) { body = String(body[..<r.lowerBound]); break }
+		}
+		// Start at the first "## " heading (skips the leading "# Title" line).
+		guard let start = body.range(of: "## ") else { return "" }
+		return String(body[start.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
 	}
 
 	/// Friendly whisper-model name from its file path, for the note's `model:`
@@ -420,6 +476,62 @@ final class RecordingController: ObservableObject {
 			}
 		}
 		return nil
+	}
+
+	// MARK: auto-stop watchdog
+
+	/// Start watching a live recording so one the user forgot to stop doesn't run
+	/// forever: stop when the call goes silent, when the Mac sleeps / the screen
+	/// locks, or at the safety cap. All gated by `settings.autoStopForgotten`,
+	/// re-checked live so toggling the setting mid-recording takes effect.
+	private func startWatchdog() {
+		recordStart = Date()
+		lastSound = Date()
+		watchdog?.invalidate()
+		watchdog = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+			self?.watchdogTick()
+		}
+		let ws = NSWorkspace.shared.notificationCenter
+		sleepObserver = ws.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+			self?.autoStop(reason: "your Mac went to sleep")
+		}
+		lockObserver = DistributedNotificationCenter.default().addObserver(
+			forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main
+		) { [weak self] _ in
+			self?.autoStop(reason: "the screen locked")
+		}
+	}
+
+	private func stopWatchdog() {
+		watchdog?.invalidate(); watchdog = nil
+		if let o = sleepObserver { NSWorkspace.shared.notificationCenter.removeObserver(o); sleepObserver = nil }
+		if let o = lockObserver { DistributedNotificationCenter.default().removeObserver(o); lockObserver = nil }
+		recordStart = nil; lastSound = nil
+	}
+
+	private func watchdogTick() {
+		guard isRecording, settings.autoStopForgotten else { return }
+		let now = Date()
+		// Any sound on either track means the meeting is still live - reset the clock.
+		if max(systemLevel, micLevel) > Self.silenceLevel { lastSound = now }
+
+		if let start = recordStart, now.timeIntervalSince(start) >= Self.maxRecordingSeconds {
+			autoStop(reason: "the \(Int(Self.maxRecordingSeconds / 3600))-hour limit was reached"); return
+		}
+		let silenceLimit = Double(max(1, settings.autoStopSilenceMinutes)) * 60
+		if let last = lastSound, now.timeIntervalSince(last) >= silenceLimit {
+			autoStop(reason: "the call was silent for \(settings.autoStopSilenceMinutes) min"); return
+		}
+	}
+
+	/// Stop the current recording automatically and let the user know why. Honors
+	/// the setting (sleep/lock can fire after it's toggled off) and no-ops if we're
+	/// no longer recording.
+	private func autoStop(reason: String) {
+		guard isRecording, settings.autoStopForgotten else { return }
+		status = "Auto-stopped recording (\(reason)). Processing…"
+		Task { @MainActor in NotificationManager.shared.notifyAutoStopped(reason: reason) }
+		stop()
 	}
 
 	private func startElapsedTimer() {

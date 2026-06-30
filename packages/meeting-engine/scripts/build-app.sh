@@ -71,6 +71,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 ${ICON_KEY}
 	<key>NSAudioCaptureUsageDescription</key><string>Records system audio (the other meeting participants) to transcribe your meetings locally.</string>
 	<key>NSMicrophoneUsageDescription</key><string>Records your microphone to transcribe your meetings locally.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key><string>Checks your calendar to confirm when a meeting is happening, so it only suggests recording during real events. Optional - off by default.</string>
 </dict>
 </plist>
 PLIST

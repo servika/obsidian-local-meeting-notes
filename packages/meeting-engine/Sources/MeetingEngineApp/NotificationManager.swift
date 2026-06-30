@@ -44,6 +44,20 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 		}
 	}
 
+	/// Notify that a recording the user forgot to stop was auto-stopped, and is now
+	/// being processed. Informational (no action); shown even if the app is frontmost
+	/// is handled by `willPresent` (it suppresses the banner only then).
+	func notifyAutoStopped(reason: String) {
+		ensureAuthorized { [weak self] granted in
+			guard let self, granted else { return }
+			let content = UNMutableNotificationContent()
+			content.title = "Recording stopped"
+			content.body = "Auto-stopped because \(reason). Processing your meeting now."
+			content.sound = .default
+			self.center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+		}
+	}
+
 	private func ensureAuthorized(_ completion: @escaping @MainActor (Bool) -> Void) {
 		if authorized { completion(true); return }
 		let center = self.center // UNUserNotificationCenter is Sendable; avoids main-actor capture

@@ -14,6 +14,45 @@ This repo ships these apps, versioned independently:
 
 ## macOS app
 
+### [0.33.0] - 2026-06-30
+
+#### Fixed
+- **Re-generate no longer wipes a good summary when summarization fails.** If the
+  summary step errored or returned nothing - e.g. a local model timing out while the
+  CPU was overloaded - Re-generate used to overwrite the note with an *empty* summary
+  and still report "✅ Re-generated", silently losing the previous summary. Now a
+  failed summary is reported honestly ("⚠️ summary failed…") and the note keeps its
+  existing summary instead of being cleared; only the transcript is refreshed. New
+  recordings likewise surface the failure ("⚠️ Saved … - summary failed. Re-generate
+  to retry.") instead of a false success. An empty model response is treated as a
+  failure too, not a valid (blank) summary.
+
+### [0.32.0] - 2026-06-30
+
+#### Added
+- **Notion-style floating meeting prompt.** When a meeting is detected while you're
+  in another app, a small floating card now appears over your screen - "Are you in a
+  meeting?" with **Start meeting notes** / **Not now** - instead of a plain system
+  notification. It's non-intrusive (doesn't steal focus) and auto-dismisses if
+  ignored. The in-app banner still covers the case where this app is in front.
+- **Optional calendar confirmation (EventKit).** New Settings → Recording toggle,
+  "Use my calendar to confirm meetings" (off by default). When on, the prompt only
+  fires during a real scheduled event and names it in the card ("'Standup' is on your
+  calendar right now") - cutting false "are you in a meeting?" nudges from incidental
+  mic use. Calendar access is requested only when you turn this on.
+
+### [0.31.0] - 2026-06-29
+
+#### Added
+- **Auto-stop a recording you forgot to stop.** A recording no longer runs forever
+  if you end the meeting but forget to click Stop. It stops on its own - and then
+  transcribes/summarizes as usual - when the call goes silent (both tracks quiet) for
+  a configurable number of minutes (default 10), when your Mac sleeps or the screen
+  locks, or after a 4-hour safety cap. A notification tells you when it happened. The
+  whole behavior is a single checkbox in Settings → Recording ("Auto-stop a recording
+  I forgot to stop"), with the silence window adjustable; turn it off for fully manual
+  recording.
+
 ### [0.30.0] - 2026-06-26
 
 #### Added

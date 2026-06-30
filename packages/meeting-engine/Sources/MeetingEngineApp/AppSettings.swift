@@ -10,6 +10,16 @@ final class AppSettings: ObservableObject {
 	@Published var language: String { didSet { d.set(language, forKey: "language") } }
 	/// Suggest starting a recording when another app starts using the mic.
 	@Published var suggestOnMeetingDetected: Bool { didSet { d.set(suggestOnMeetingDetected, forKey: "suggestOnMeetingDetected") } }
+	/// Auto-stop a recording you forgot to stop: when the call goes silent for
+	/// `autoStopSilenceMinutes`, when the Mac sleeps / the screen locks, or at a
+	/// safety duration cap. Off leaves recording entirely manual.
+	@Published var autoStopForgotten: Bool { didSet { d.set(autoStopForgotten, forKey: "autoStopForgotten") } }
+	/// Minutes of silence (both tracks quiet) before an auto-stop fires.
+	@Published var autoStopSilenceMinutes: Int { didSet { d.set(autoStopSilenceMinutes, forKey: "autoStopSilenceMinutes") } }
+	/// Use the calendar (EventKit) to refine meeting detection: only prompt during a
+	/// scheduled event, and name it in the prompt. Off by default - opting in is what
+	/// triggers the one-time calendar-access request.
+	@Published var useCalendarForMeetings: Bool { didSet { d.set(useCalendarForMeetings, forKey: "useCalendarForMeetings") } }
 	/// Optional initial prompt passed to whisper to bias spelling/vocabulary
 	/// (participant names, product/company terms, language). Improves accuracy.
 	@Published var transcriptionPrompt: String { didSet { d.set(transcriptionPrompt, forKey: "transcriptionPrompt") } }
@@ -47,6 +57,9 @@ final class AppSettings: ObservableObject {
 		whisperModelPath = d.string(forKey: "whisperModelPath") ?? "~/models/ggml-base.bin"
 		language = d.string(forKey: "language") ?? "auto"
 		suggestOnMeetingDetected = (d.object(forKey: "suggestOnMeetingDetected") as? Bool) ?? true
+		autoStopForgotten = (d.object(forKey: "autoStopForgotten") as? Bool) ?? true
+		autoStopSilenceMinutes = (d.object(forKey: "autoStopSilenceMinutes") as? Int) ?? 10
+		useCalendarForMeetings = (d.object(forKey: "useCalendarForMeetings") as? Bool) ?? false
 		transcriptionPrompt = d.string(forKey: "transcriptionPrompt") ?? ""
 		experimentalMode = (d.object(forKey: "experimentalMode") as? Bool) ?? false
 		var flags = (d.dictionary(forKey: "featureFlags") as? [String: Bool]) ?? [:]
